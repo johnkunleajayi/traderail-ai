@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowRight, LogOut, ShieldCheck, UserRound } from 'lucide-react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { LogOut, ShieldCheck, UserRound } from 'lucide-react'
 import { logout, readSession, type SessionUser } from '../auth/api'
 import BrandLogo from './BrandLogo'
 import ThemeToggle from './ThemeToggle'
+import PaperPortfolioSummary from './PaperPortfolioSummary'
 import { Card, SectionLabel } from './ui'
 
 export default function AuthExperience({ children }: { children: ReactNode }) {
@@ -11,6 +12,7 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
   const [error, setError] = useState('')
   const [signingOut, setSigningOut] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const clearUser = useCallback(() => setUser(null), [])
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
@@ -46,7 +48,7 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
       <div className="workspace-heading"><div><h1>Welcome, {user.name}.</h1><p>Systematic trading. Engineered for control.</p></div><span className="workspace-badge"><ShieldCheck size={15}/> Signed in with Google</span></div>
       {error && <p className="auth-notice" role="alert">{error}</p>}
       <Card className="profile-card"><div className="user-avatar">{user.avatar_url ? <img src={user.avatar_url} alt="" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none' }}/>: <UserRound size={26}/>}</div><div><h2>{user.name}</h2><p>{user.email}</p></div></Card>
-      <Card className="workspace-placeholder"><div><SectionLabel>NEXT BUILD STAGE</SectionLabel><h2>Paper Trading &amp; portfolio</h2><p>Your workspace starts here. Portfolio tools and paper trading are planned for a future release.</p><p className="workspace-boundary">No exchange is connected. No balances, trades or market data are available.</p></div><span className="placeholder-arrow" aria-hidden="true"><ArrowRight size={25}/></span></Card>
+      <PaperPortfolioSummary onSessionExpired={clearUser}/>
     </main>
   </div>
 }

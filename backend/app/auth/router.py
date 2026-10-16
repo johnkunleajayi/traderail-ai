@@ -11,6 +11,7 @@ from app.auth.models import AuthSession
 from app.auth.session import SESSION_COOKIE, clear_session_cookie, create_session, hash_token, set_session_cookie
 from app.core.config import Settings
 from app.db.session import get_session
+from app.portfolio.service import ensure_paper_portfolio
 from app.users.models import User
 from app.users.schemas import UserResponse
 from app.users.service import save_google_user
@@ -48,6 +49,7 @@ async def google_callback(request: Request, settings: Settings = Depends(require
         raise HTTPException(400, "Google identity could not be verified")
     try:
         user = save_google_user(db, claims)
+        ensure_paper_portfolio(db, user.id)
         # Reauthentication rotates and revokes the current TradeRail session.
         old_token = request.cookies.get(SESSION_COOKIE)
         if old_token and len(old_token) <= 128:

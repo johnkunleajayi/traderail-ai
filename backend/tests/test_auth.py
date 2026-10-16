@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
+from app.portfolio.models import PaperPortfolio
 from app.auth.models import AuthSession
 from app.auth.session import SESSION_COOKIE, hash_token
 from app.core.config import Settings
@@ -61,6 +62,8 @@ def flow():
     def scalar(statement):
         if statement.column_descriptions[0]["entity"] is AuthSession:
             return sessions.get(statement.compile().params["token_hash_1"])
+        if statement.column_descriptions[0]["entity"] is PaperPortfolio:
+            return PaperPortfolio(user_id=user.id)
         return None
 
     def get(model, key):
@@ -200,6 +203,9 @@ def test_verified_callback_session_and_logout(flow, monkeypatch):
     monkeypatch.setattr("app.auth.router.save_google_user", lambda db, claims: flow.user)
     result = flow.client.get("/api/auth/google/callback", params={"state": state, "code": "test-code"})
     assert result.status_code == 303
+    inserts = [call.args[0] for call in flow.db.execute.call_args_list
+               if call.args[0].table.name == "paper_portfolios"]
+    assert len(inserts) == 1 and inserts[0].compile().params["user_id"] == flow.user.id
     assert result.headers["location"] == "http://127.0.0.1:5173/?auth=success"
     token = flow.client.cookies.get(SESSION_COOKIE)
     assert token and hash_token(token) in flow.sessions

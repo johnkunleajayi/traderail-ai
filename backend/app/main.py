@@ -8,6 +8,7 @@ from app.api.health import router as health_router
 from app.auth.oauth import create_oauth
 from app.auth.router import router as auth_router
 from app.core.config import Settings, get_settings
+from app.portfolio.router import router as portfolio_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -42,6 +43,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     application.include_router(health_router, prefix="/api")
     application.include_router(auth_router, prefix="/api")
+    application.include_router(portfolio_router, prefix="/api")
     return application
 
 
