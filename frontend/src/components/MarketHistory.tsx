@@ -4,9 +4,12 @@ import { readInstruments } from '../markets/api'
 import { historicalSymbols, historyLimit, ingestHistory, readQuality, readStoredCandles, timeframes, type DatasetQuality, type StoredCandle, type Timeframe } from '../history/api'
 const HistoryChart = lazy(() => import('./HistoryChart'))
 import { Card, SectionLabel } from './ui'
+import { alignIntelligence, readIntelligence, type Intelligence } from '../history/intelligence'
 
 function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timeframe: Timeframe; onBusy: (value: boolean) => void }) {
   const [candles, setCandles] = useState<StoredCandle[] | null>(null)
+  const [intelligence, setIntelligence] = useState<Intelligence | null>(null)
+  const [intelligenceError, setIntelligenceError] = useState('')
   const [quality, setQuality] = useState<DatasetQuality | null>(null)
   const [error, setError] = useState('')
   const [qualityError, setQualityError] = useState(false)
@@ -14,13 +17,19 @@ function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timefra
   const [busy, setBusy] = useState(false)
   const controller = useRef<AbortController | null>(null)
   const refresh = useCallback(async (signal: AbortSignal) => {
-    setCandles(null); setQuality(null); setError(''); setQualityError(false)
-    const results = await Promise.allSettled([readStoredCandles(symbol, timeframe, signal), readQuality(symbol, timeframe, signal)])
+    setCandles(null); setQuality(null); setIntelligence(null); setIntelligenceError(''); setError(''); setQualityError(false)
+    const results = await Promise.allSettled([readStoredCandles(symbol, timeframe, signal), readQuality(symbol, timeframe, signal), readIntelligence(symbol, timeframe, signal)])
     if (signal.aborted) return
     if (results[0].status === 'fulfilled') setCandles(results[0].value)
     else setError(results[0].reason instanceof Error ? results[0].reason.message : 'Stored history is unavailable.')
     if (results[1].status === 'fulfilled') setQuality(results[1].value)
     else setQualityError(true)
+    if (results[0].status === 'fulfilled' && results[0].value.length > 0) {
+      if (results[2].status === 'fulfilled') {
+        try { alignIntelligence(results[0].value, results[2].value); setIntelligence(results[2].value) }
+        catch (reason) { setIntelligenceError(reason instanceof Error ? reason.message : 'Intelligence alignment failed.') }
+      } else setIntelligenceError(results[2].reason instanceof Error ? results[2].reason.message : 'Market Intelligence is unavailable.')
+    }
   }, [symbol, timeframe])
   useEffect(() => {
     const request = new AbortController(); controller.current = request
@@ -52,7 +61,7 @@ function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timefra
     {qualityError && <p className="history-caption" role="status">Quality metadata could not be loaded. Freshness and gap status are not assumed.</p>}
     {!error && candles === null ? <div className="history-state" role="status">Loading stored candles for {symbol} · {timeframe}…</div>
       : candles?.length === 0 ? <div className="history-state history-empty"><Database size={25} aria-hidden="true"/><h3>No stored history yet</h3><p>Historical candles have not been loaded for {symbol} · {timeframe}. Load up to {historyLimit} completed candles through TradeRail.</p></div>
-      : candles && candles.length > 0 ? <><Suspense fallback={<div className="history-state" role="status">Preparing candlestick chart…</div>}><HistoryChart candles={candles}/></Suspense><p className="history-caption">Showing {candles.length} stored candles · completed intervals only{quality ? ` · Quality evaluated ${new Date(quality.evaluated_at).toLocaleString()}` : ''}</p></> : null}
+      : candles && candles.length > 0 ? <><Suspense fallback={<div className="history-state" role="status">Preparing candlestick chart…</div>}><HistoryChart candles={candles} intelligence={intelligence} intelligenceError={intelligenceError}/></Suspense><p className="history-caption">Showing {candles.length} stored candles · completed intervals only{quality ? ` · Quality evaluated ${new Date(quality.evaluated_at).toLocaleString()}` : ''}</p></> : null}
   </>
 }
 

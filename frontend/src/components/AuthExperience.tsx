@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { LogOut, ShieldCheck, UserRound } from 'lucide-react'
 import { logout, readSession, type SessionUser } from '../auth/api'
 import BrandLogo from './BrandLogo'
 import ThemeToggle from './ThemeToggle'
 import PaperPortfolioSummary from './PaperPortfolioSummary'
 import MarketsSection from './MarketsSection'
-import MarketHistory from './MarketHistory'
+const MarketHistory = lazy(() => import('./MarketHistory'))
 import { Card, SectionLabel } from './ui'
 
 export default function AuthExperience({ children }: { children: ReactNode }) {
@@ -52,7 +52,7 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
       <Card className="profile-card"><div className="user-avatar">{user.avatar_url ? <img src={user.avatar_url} alt="" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none' }}/>: <UserRound size={26}/>}</div><div><h2>{user.name}</h2><p>{user.email}</p></div></Card>
       <PaperPortfolioSummary onSessionExpired={clearUser}/>
       <MarketsSection/>
-      <MarketHistory/>
+      <Suspense fallback={<p className="history-caption" role="status">Loading Market History…</p>}><MarketHistory/></Suspense>
     </main>
   </div>
 }

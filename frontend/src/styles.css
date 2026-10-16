@@ -526,3 +526,29 @@ button:disabled { opacity: .6; cursor: wait; }
   .history-canvas { height: 320px; }
   .history-state { padding: 25px 18px; min-height: 270px; }
 }
+
+/* Market Intelligence uses the existing theme tokens, with no financial calculations. */
+.intelligence-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--muted); margin: 24px 0 14px; }
+.intelligence-controls { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; }
+.intelligence-toggle { border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 11px; border-radius: 5px; padding: 7px 11px; cursor: pointer; transition: background .15s, border-color .15s; }
+.intelligence-toggle[aria-pressed=true] { background: var(--soft); color: var(--brand-text); border-color: var(--brand-text); }
+.intelligence-toggle.intelligence-ema50[aria-pressed=true] { color: var(--intelligence-secondary); border-color: var(--intelligence-secondary); }
+.intelligence-toggle:hover { background: var(--soft); }
+.intelligence-toggle:focus-visible,.intelligence-inspector summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.intelligence-toggle:disabled { opacity: .5; cursor: default; }
+.intelligence-measures { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
+.intelligence-measures div { display: grid; gap: 8px; min-width: 0; }
+.intelligence-measures span { font-size: 10px; color: var(--muted); line-height: 1.6; }
+.intelligence-measures strong { font-size: 12px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.intelligence-inspector { border-top: 1px solid var(--line); padding: 12px 0; color: var(--muted); font-size: 11px; }
+.intelligence-inspector summary { cursor: pointer; padding: 4px 0; }
+.intelligence-inspector dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 14px 0; }
+.intelligence-inspector dt { font-size: 10px; }
+.intelligence-inspector dd { margin: 6px 0 0; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.6; }
+.intelligence-canvas { height: calc(390px + var(--intelligence-panels,0) * 145px); }
+.market-history { --intelligence-secondary: var(--headline-end); --intelligence-histogram: var(--headline-end); }
+@media (max-width: 600px) {
+  .intelligence-canvas { height: calc(320px + var(--intelligence-panels,0) * 135px); }
+  .intelligence-measures { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .intelligence-inspector dl { grid-template-columns: minmax(0,1fr); }
+}

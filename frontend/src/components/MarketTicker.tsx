@@ -1,13 +1,7 @@
 import { useEffect, useState } from 'react'
 import { readTicker, type MarketTicker as Ticker } from '../markets/api'
 
-// Format the decimal string directly: no binary-float conversion or lost precision.
-function priceText(price: string): string {
-  const [whole, fraction = ''] = price.split('.')
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  const trimmed = fraction.replace(/0+$/, '')
-  return trimmed ? `${grouped}.${trimmed}` : grouped
-}
+import { formatMarketValue } from '../markets/format'
 
 export default function MarketTicker({ canonicalSymbol }: { canonicalSymbol: string }) {
   const [ticker, setTicker] = useState<Ticker | null>(null)
@@ -29,7 +23,7 @@ export default function MarketTicker({ canonicalSymbol }: { canonicalSymbol: str
     {error ? <p className="market-price-state" role="status">Price unavailable</p>
       : ticker === null ? <p className="market-price-state" role="status">Loading price…</p>
       : <>
-        <div className="market-price"><strong>{priceText(ticker.last_price)}</strong><span>{ticker.quote_currency}</span></div>
+        <div className="market-price"><strong>{formatMarketValue(ticker.last_price)}</strong><span>{ticker.quote_currency}</span></div>
         <div className="market-ticker-time">
           {ticker.source_timestamp && <span>Source snapshot <time dateTime={ticker.source_timestamp}>{new Date(ticker.source_timestamp).toLocaleString()}</time></span>}
           <span>Retrieved <time dateTime={ticker.retrieved_at}>{new Date(ticker.retrieved_at).toLocaleString()}</time></span>
