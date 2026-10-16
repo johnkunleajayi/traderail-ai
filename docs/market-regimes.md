@@ -96,3 +96,38 @@ Each result has canonical_symbol, provider, timeframe, UTC open_time/close_time,
 These definitions have no predictive/return guarantees. Thresholds are shared across current timeframes but slopes, ATR and RV are per-bar, so outcomes are not timeframe invariant. Scale normalization does not remove liquidity, sampling, asset or provider effects. Baseline floors, event exceptions, hard category boundaries, persistence retention and closing-range references all require empirical validation. Truncated/prepended histories can change intelligence initialization and therefore regime results; full configuration plus explicit dataset boundaries are needed for future reproducibility. No full dataset versioning, Strategy Lab, interpretation UI or endpoint is built here.
 
 Automated fixtures represent intentional market shapes and pass through the real intelligence engine; they are never product data. Real BTC/ETH observations are checked only after tests pass, without threshold adjustment or ingestion.
+
+
+## Read-only API — 8A Part 2
+
+GET /api/market-regimes/{base}/{quote}?timeframe=1h&provider=BINANCE&limit=100
+
+For example: /api/market-regimes/BTC/USDT?timeframe=1h&provider=BINANCE&limit=100.
+
+This is public read-only reference analysis, matching Market Intelligence access. Base and quote must be uppercase canonical asset symbols (one to sixteen letters/digits, beginning with a letter), not venue symbols. Supported provider query: BINANCE. Timeframes: 15m, 1h, 4h, 1d. Limit: minimum 1, default 100, maximum 1000, reusing the intelligence API bounds.
+
+The API integration service resolves the canonical instrument and joined asset metadata with autoflush disabled, invokes the unchanged calculate_stored_features service with the exact requested limit, and passes those returned rows into the unchanged classify_regimes engine exactly once. A single captured UTC as_of completion boundary is shared by both calls. Instrument resolution is repeated internally by the unchanged intelligence service; this deliberate small extra reference lookup avoids changing its established interface. Neither lookup writes or flushes. The pure regime modules have no dependency on these new FastAPI schemas/router/service files.
+
+The response contains:
+
+- canonical_symbol; base_asset and quote_asset (canonical asset symbol strings from instrument relationships); provider; timeframe.
+- candle_count: actual returned rows. dataset_start: first candle open_time. dataset_end: last candle close_time. Times are UTC.
+- regime_engine_version; feature_engine_version; complete regime_configuration.
+- regimes: chronological rows, including every warm-up UNKNOWN and any domain-produced UNSAFE row.
+- latest_regime: the identical final serialized regime row, not a second classification or a separately interpreted summary.
+
+Each row contains open_time, close_time, regime, candidate_regime, confirmation, evidence and reason_codes. Confirmation exposes count, required, previous_regime, retained_previous, available_candles and candidate_history_required. Evidence is the existing domain Evidence object in full; its candidate, confirmation fields and reason codes are also retained there for faithful transport. Domain Decimal values in evidence AND configuration are emitted as exact fixed-point JSON strings (no float conversion or display rounding); counters remain integers and flags remain booleans. Warm-up measurements stay null.
+
+The selected latest-N dataset is the complete calculation boundary. No seed history is pulled outside it; no rows are hidden to satisfy warm-up. Therefore smaller limits restart indicator initialization and regime persistence, and can change the latest classification. No ingestion, provider requests, database writes or regime persistence occur. Cache-Control is no-store.
+
+### Error versus classification semantics
+
+- Unknown canonical instrument: 404, instrument_not_found.
+- Existing canonical instrument but no stored rows for that provider/timeframe: 409, stored_candles_unavailable. An unsupported historical quote market is never substituted.
+- Invalid base/quote shape, provider, timeframe or limit: normal FastAPI 422 validation response.
+- Stored candles rejected by the existing intelligence validator (gap, duplicate, incomplete, malformed, etc.): 409, invalid_candle_dataset, with reason and candle_index. In this case the prerequisite feature dataset cannot be produced. The integration does not bypass that validator, recreate partial indicator rows, fabricate UNSAFE classifications or recompute a suffix.
+- Intelligence numeric-range failure: 409, measurement_unavailable. No fallback values.
+- Existing sanitized database failure response remains 503.
+- A successful regime-engine execution yielding UNKNOWN or UNSAFE remains HTTP 200. Domain UNSAFE reasons, valid prefix and quarantined suffix are transported unchanged; the row is not converted into an HTTP error. Domain UNKNOWN remains ordinary valid output, including warm-up and pending confirmation. The final chronological row remains the source of truth for latest_regime.
+
+The API adds no schema migration, frontend behavior or regime-methodology change. Automated tests use the real intelligence/regime pipeline with mocked persistence, and separately inject an invalid feature measurement to verify that domain UNSAFE transport remains 200. Live verification uses existing candles in read-only transactions, compares repeated complete responses and verifies database-wide row fingerprints before/after.
