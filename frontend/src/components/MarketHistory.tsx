@@ -5,11 +5,14 @@ import { historicalSymbols, historyLimit, ingestHistory, readQuality, readStored
 const HistoryChart = lazy(() => import('./HistoryChart'))
 import { Card, SectionLabel } from './ui'
 import { alignIntelligence, readIntelligence, type Intelligence } from '../history/intelligence'
+import { alignRegimes, readRegimes, type RegimeDataset } from '../history/regimes'
 
 function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timeframe: Timeframe; onBusy: (value: boolean) => void }) {
   const [candles, setCandles] = useState<StoredCandle[] | null>(null)
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null)
   const [intelligenceError, setIntelligenceError] = useState('')
+  const [regimes, setRegimes] = useState<RegimeDataset | null>(null)
+  const [regimeError, setRegimeError] = useState('')
   const [quality, setQuality] = useState<DatasetQuality | null>(null)
   const [error, setError] = useState('')
   const [qualityError, setQualityError] = useState(false)
@@ -17,8 +20,8 @@ function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timefra
   const [busy, setBusy] = useState(false)
   const controller = useRef<AbortController | null>(null)
   const refresh = useCallback(async (signal: AbortSignal) => {
-    setCandles(null); setQuality(null); setIntelligence(null); setIntelligenceError(''); setError(''); setQualityError(false)
-    const results = await Promise.allSettled([readStoredCandles(symbol, timeframe, signal), readQuality(symbol, timeframe, signal), readIntelligence(symbol, timeframe, signal)])
+    setCandles(null); setRegimes(null); setRegimeError(''); setQuality(null); setIntelligence(null); setIntelligenceError(''); setError(''); setQualityError(false)
+    const results = await Promise.allSettled([readStoredCandles(symbol, timeframe, signal), readQuality(symbol, timeframe, signal), readIntelligence(symbol, timeframe, signal), readRegimes(symbol, timeframe, signal)])
     if (signal.aborted) return
     if (results[0].status === 'fulfilled') setCandles(results[0].value)
     else setError(results[0].reason instanceof Error ? results[0].reason.message : 'Stored history is unavailable.')
@@ -29,6 +32,10 @@ function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timefra
         try { alignIntelligence(results[0].value, results[2].value); setIntelligence(results[2].value) }
         catch (reason) { setIntelligenceError(reason instanceof Error ? reason.message : 'Intelligence alignment failed.') }
       } else setIntelligenceError(results[2].reason instanceof Error ? results[2].reason.message : 'Market Intelligence is unavailable.')
+      if (results[3].status === 'fulfilled') {
+        try { alignRegimes(results[0].value, results[3].value); setRegimes(results[3].value) }
+        catch (reason) { setRegimeError(reason instanceof Error ? reason.message : 'Regime alignment failed.') }
+      } else setRegimeError(results[3].reason instanceof Error ? results[3].reason.message : 'Market regimes unavailable.')
     }
   }, [symbol, timeframe])
   useEffect(() => {
@@ -61,7 +68,7 @@ function HistoryDataset({ symbol, timeframe, onBusy }: { symbol: string; timefra
     {qualityError && <p className="history-caption" role="status">Quality metadata could not be loaded. Freshness and gap status are not assumed.</p>}
     {!error && candles === null ? <div className="history-state" role="status">Loading stored candles for {symbol} · {timeframe}…</div>
       : candles?.length === 0 ? <div className="history-state history-empty"><Database size={25} aria-hidden="true"/><h3>No stored history yet</h3><p>Historical candles have not been loaded for {symbol} · {timeframe}. Load up to {historyLimit} completed candles through TradeRail.</p></div>
-      : candles && candles.length > 0 ? <><Suspense fallback={<div className="history-state" role="status">Preparing candlestick chart…</div>}><HistoryChart candles={candles} intelligence={intelligence} intelligenceError={intelligenceError}/></Suspense><p className="history-caption">Showing {candles.length} stored candles · completed intervals only{quality ? ` · Quality evaluated ${new Date(quality.evaluated_at).toLocaleString()}` : ''}</p></> : null}
+      : candles && candles.length > 0 ? <><Suspense fallback={<div className="history-state" role="status">Preparing candlestick chart…</div>}><HistoryChart candles={candles} intelligence={intelligence} intelligenceError={intelligenceError} regimes={regimes} regimeError={regimeError}/></Suspense><p className="history-caption">Showing {candles.length} stored candles · completed intervals only{quality ? ` · Quality evaluated ${new Date(quality.evaluated_at).toLocaleString()}` : ''}</p></> : null}
   </>
 }
 

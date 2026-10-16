@@ -545,10 +545,28 @@ button:disabled { opacity: .6; cursor: wait; }
 .intelligence-inspector dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 14px 0; }
 .intelligence-inspector dt { font-size: 10px; }
 .intelligence-inspector dd { margin: 6px 0 0; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.6; }
-.intelligence-canvas { height: calc(390px + var(--intelligence-panels,0) * 145px); }
+.intelligence-canvas { height: calc(390px + var(--intelligence-panels,0) * 145px + var(--regime-strip-height,0px)); }
 .market-history { --intelligence-secondary: var(--headline-end); --intelligence-histogram: var(--headline-end); }
 @media (max-width: 600px) {
-  .intelligence-canvas { height: calc(320px + var(--intelligence-panels,0) * 135px); }
+  .intelligence-canvas { height: calc(320px + var(--intelligence-panels,0) * 135px + var(--regime-strip-height,0px)); }
   .intelligence-measures { grid-template-columns: minmax(0,1fr); gap: 16px; }
   .intelligence-inspector dl { grid-template-columns: minmax(0,1fr); }
 }
+
+.regime-summary { border: 1px solid var(--line); border-radius: 6px; padding: 15px; margin: 20px 0 16px; }
+.regime-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:11px; color:var(--muted); margin-bottom:10px; }
+.regime-label { --regime-color:var(--muted); display:inline-flex; align-items:center; gap:6px; color:var(--text); font-size:10px; font-weight:500; letter-spacing:.3px; }
+.regime-label::before { content:''; width:7px; height:7px; border:1px solid var(--regime-color); background:var(--regime-color); border-radius:2px; flex-shrink:0; }
+.regime-BULL_TREND { --regime-color:var(--brand-text); }
+.regime-BEAR_TREND { --regime-color:var(--headline-end); }
+.regime-BREAKOUT { --regime-color:var(--color-success); }
+.regime-HIGH_VOLATILITY { --regime-color:var(--color-warning); }
+.regime-UNSAFE { --regime-color:var(--color-risk); }
+.regime-summary-UNSAFE { border-color:var(--color-risk); }
+.regime-UNKNOWN { --regime-color:var(--line); color:var(--muted); }
+.regime-summary > strong { font-size:18px; }
+.regime-state { display:flex; flex-wrap:wrap; gap:8px 20px; font-size:11px; color:var(--muted); margin:10px 0; line-height:1.7; }
+.regime-state strong { font-weight:500; color:var(--text); }
+.regime-reasons { font-size:10px; color:var(--muted); line-height:1.8; overflow-wrap:anywhere; }
+.regime-inspection { border-top:1px solid var(--line); padding:14px 0 0; }
+.regime-legend { display:flex; flex-wrap:wrap; gap:10px 16px; padding:12px 0; }

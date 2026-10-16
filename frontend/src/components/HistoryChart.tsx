@@ -5,11 +5,15 @@ import type { StoredCandle } from '../history/api'
 import { alignIntelligence, latestAvailable, type Intelligence } from '../history/intelligence'
 import { addIntelligence, defaultIndicators, indicatorControls } from '../history/intelligenceChart'
 
+import { alignRegimes, regimeNames, type RegimeDataset } from '../history/regimes'
+import { addRegimeStrip } from '../history/regimeChart'
+import RegimeSummary, { RegimeInspection } from './RegimeSummary'
+
 function utcLabel(value: string) { return new Date(value).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' }
 const inspectFields = [{ key: 'ema_20', label: 'EMA20' }, { key: 'ema_50', label: 'EMA50' }, { key: 'rsi_14', label: 'RSI14' },
   { key: 'atr_14', label: 'ATR14' }, { key: 'macd', label: 'MACD' }, { key: 'macd_signal', label: 'MACD signal' }, { key: 'macd_histogram', label: 'MACD histogram' }] as const
 
-export default function HistoryChart({ candles, intelligence, intelligenceError }: { candles: StoredCandle[]; intelligence: Intelligence | null; intelligenceError: string }) {
+export default function HistoryChart({ candles, intelligence, intelligenceError, regimes = null, regimeError = '' }: { regimes?: RegimeDataset | null; regimeError?: string; candles: StoredCandle[]; intelligence: Intelligence | null; intelligenceError: string }) {
   const host = useRef<HTMLDivElement>(null)
   const reset = useRef<() => void>(() => {})
   const range = useRef<LogicalRange | null>(null)
@@ -17,6 +21,7 @@ export default function HistoryChart({ candles, intelligence, intelligenceError 
   const [selected, setSelected] = useState(candles[candles.length - 1].open_time)
   const inspected = candles.find(c => c.open_time === selected) ?? candles[candles.length - 1]
   const [visible, setVisible] = useState(defaultIndicators)
+  const [showRegimes, setShowRegimes] = useState(true)
   const [error, setError] = useState('')
   let aligned: ReturnType<typeof alignIntelligence> | null = null
   let alignmentError = ''
@@ -24,6 +29,12 @@ export default function HistoryChart({ candles, intelligence, intelligenceError 
   catch (reason) { alignmentError = reason instanceof Error ? reason.message : 'Intelligence alignment failed.' }
   const feature = aligned?.get(Date.parse(inspected.open_time))
   const intelligenceReady = intelligence && aligned && !alignmentError && !intelligenceError
+  let regimeRows: ReturnType<typeof alignRegimes> | null = null
+  let regimeAlignmentError = ''
+  try { if (regimes) regimeRows = alignRegimes(candles, regimes) }
+  catch (reason) { regimeAlignmentError = reason instanceof Error ? reason.message : 'Regime alignment failed.' }
+  const regimesReady = !!regimes && !!regimeRows && !regimeError && !regimeAlignmentError
+  const inspectedRegime = regimesReady ? regimeRows?.get(Date.parse(inspected.open_time)) : undefined
   useEffect(() => {
     if (!host.current) return
     setError('')
@@ -51,13 +62,15 @@ export default function HistoryChart({ candles, intelligence, intelligenceError 
       setError(reason instanceof Error ? reason.message : 'Measurements could not be rendered.')
       chart.remove(); return
     }
+    let themeRegimes = () => {}
+    if (regimesReady && regimes && showRegimes) themeRegimes = addRegimeStrip(chart, regimes.regimes, token)
     const applyTheme = () => {
       chart.applyOptions({ layout: { background: { type: ColorType.Solid, color: token('--surface') }, textColor: token('--muted'), fontFamily: 'Inter, Segoe UI, sans-serif' },
         grid: { vertLines: { visible: false }, horzLines: { color: token('--line') } },
         rightPriceScale: { borderColor: token('--line') }, timeScale: { borderColor: token('--line') },
         crosshair: { vertLine: { color: token('--brand-text'), labelBackgroundColor: token('--brand-text') }, horzLine: { color: token('--brand-text'), labelBackgroundColor: token('--brand-text') } } })
       series.applyOptions({ upColor: token('--color-success'), downColor: token('--color-risk'), wickUpColor: token('--color-success'), wickDownColor: token('--color-risk') })
-      themeIntelligence()
+      themeIntelligence(); themeRegimes()
     }
     applyTheme()
     const themeObserver = new MutationObserver(applyTheme)
@@ -69,14 +82,15 @@ export default function HistoryChart({ candles, intelligence, intelligenceError 
     const originals = new Map(candles.map(c => [Date.parse(c.open_time) / 1000, c]))
     chart.subscribeCrosshairMove(event => setSelected(typeof event.time === 'number' ? (originals.get(event.time) ?? latest).open_time : latest.open_time))
     return () => { range.current = chart.timeScale().getVisibleLogicalRange(); themeObserver.disconnect(); reset.current = () => {}; chart.remove() }
-  }, [candles, intelligence, intelligenceError, alignmentError, visible])
+  }, [candles, intelligence, intelligenceError, alignmentError, visible, regimes, regimeError, regimeAlignmentError, regimesReady, showRegimes])
   const atr = intelligenceReady ? latestAvailable(intelligence.features, 'atr_14') : null
   const volatility = intelligenceReady ? latestAvailable(intelligence.features, 'realized_volatility') : null
   const panelCount = intelligenceReady ? Number(visible.rsi) + Number(visible.macd) : 0
   return <div className="history-chart-block">
+    <RegimeSummary data={regimesReady ? regimes : null} error={regimeError || regimeAlignmentError}/>
     <div className="intelligence-heading"><span>Market Intelligence{intelligenceReady ? ` · Engine v${intelligence.feature_configuration.engine_version}` : ''}</span><span>Measurements only</span></div>
     {(intelligenceError || alignmentError) && <p className="history-error" role="status">{intelligenceError || alignmentError}</p>}
-    <div className="intelligence-controls" role="group" aria-label="Show market measurements">{indicatorControls.map(control => <button type="button" key={control.key} disabled={!intelligenceReady} aria-pressed={visible[control.key]} className={`intelligence-toggle intelligence-${control.key}`} onClick={() => setVisible(current => ({ ...current, [control.key]: !current[control.key] }))}>{control.label}</button>)}</div>
+    <div className="intelligence-controls" role="group" aria-label="Show market measurements">{indicatorControls.map(control => <button type="button" key={control.key} disabled={!intelligenceReady} aria-pressed={visible[control.key]} className={`intelligence-toggle intelligence-${control.key}`} onClick={() => setVisible(current => ({ ...current, [control.key]: !current[control.key] }))}>{control.label}</button>)}<button type="button" className="intelligence-toggle" disabled={!regimesReady} aria-pressed={showRegimes} onClick={()=>setShowRegimes(value=>!value)}>Regimes</button></div>
     {intelligenceReady && <>
       <div className="intelligence-measures"><div><span>Latest available ATR14</span><strong>{atr === null ? 'Unavailable · insufficient history' : formatMarketValue(atr)}</strong></div><div><span>Realized volatility · Unannualized · {intelligence.feature_configuration.realized_volatility_window} log returns</span><strong>{volatility === null ? 'Unavailable · insufficient history' : formatVolatility(volatility)}</strong></div></div>
       <p className="history-caption">{visible.ema20 && 'EMA20 · '}{visible.ema50 && 'EMA50 · '}{visible.rsi && 'RSI14 · 30 / 70 reference levels only · '}{visible.macd && 'MACD line / signal / histogram · '}Shared UTC time axis. Missing warm-up values remain unavailable.</p>
@@ -86,9 +100,11 @@ export default function HistoryChart({ candles, intelligence, intelligenceError 
       <label className="history-inspect-control">Inspect candle (UTC)<select value={inspected.open_time} onChange={event => setSelected(event.target.value)}>{candles.map(c => <option key={c.open_time} value={c.open_time}>{utcLabel(c.open_time)}</option>)}</select></label>
       <dl className="history-ohlc">{(['open', 'high', 'low', 'close'] as const).map(field => <div key={field}><dt>{field}</dt><dd title={inspected[field]}>{formatMarketValue(inspected[field])}</dd></div>)}</dl>
     </div>
+    {inspectedRegime && <RegimeInspection row={inspectedRegime}/>}
     {feature && <details className="intelligence-inspector"><summary>Selected candle measurements · exact backend values</summary><dl>{(['open', 'high', 'low', 'close'] as const).map(field => <div key={field}><dt>{field} · exact</dt><dd>{inspected[field]}</dd></div>)}{inspectFields.map(field => { const raw = feature[field.key]; return <div key={field.key}><dt>{field.label}</dt><dd>{raw === null ? 'Unavailable · warm-up' : <>{formatIndicator(raw, field.key === 'rsi_14' ? 'rsi' : 'market')}<br/><span className="history-caption">Exact: {raw}</span></>}</dd></div> })}</dl></details>}
     {error && <p className="history-error" role="status">{error}</p>}
-    <div ref={host} className="history-canvas intelligence-canvas" style={{ '--intelligence-panels': panelCount } as React.CSSProperties} role="img" aria-label={`${candles[0].canonical_symbol} stored historical candlesticks${intelligenceReady && visible.rsi ? ', RSI14 panel with 30 and 70 reference levels' : ''}${intelligenceReady && visible.macd ? ', MACD panel with line, signal and histogram' : ''}. Use the candle selector for exact values.`}/>
+    <div ref={host} className="history-canvas intelligence-canvas" style={{ '--intelligence-panels': panelCount, '--regime-strip-height': regimesReady && showRegimes ? '58px' : '0px' } as React.CSSProperties} role="img" aria-label={`${candles[0].canonical_symbol} stored historical candlesticks${regimesReady && showRegimes ? ", categorical regime strip" : ""}${intelligenceReady && visible.rsi ? ', RSI14 panel with 30 and 70 reference levels' : ''}${intelligenceReady && visible.macd ? ', MACD panel with line, signal and histogram' : ''}. Use the candle selector for exact values.`}/>
+    {regimesReady && showRegimes && <div className="regime-legend" aria-label="Regime strip category legend">{regimeNames.map(name=><span className={`regime-label regime-${name}`} key={name}>{name}</span>)}</div>}
     <div className="history-chart-help"><span>Scroll to zoom · drag to pan · crosshair to inspect · times in UTC</span><button type="button" className="market-refresh" onClick={() => reset.current()}>Reset view</button></div>
     <p className="history-attribution">TradingView Lightweight Charts™ · Copyright (с) 2025 <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView, Inc.</a></p>
   </div>

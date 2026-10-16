@@ -18,7 +18,19 @@ const intelligence=await load('../src/history/intelligence.ts', [
 ])
 const charts=await load('../src/history/intelligenceChart.ts', [[/from ['"]lightweight-charts['"]/g,`from '${import.meta.resolve('lightweight-charts')}'`]])
 const formatting=await load('../src/markets/format.ts')
+const regimeApi=await load('../src/history/regimes.ts', [
+  [/import \{ apiBase \} from ['"]..\/auth\/api['"];?/, "const apiBase='http://127.0.0.1:8000';"],
+  [/import \{ historyLimit \} from ['"].\/api['"];?/, 'const historyLimit=100;'],
+])
+const regimeCharts=await load('../src/history/regimeChart.ts', [[/from ['"]lightweight-charts['"]/g,`from '${import.meta.resolve('lightweight-charts')}'`]])
+const regimeView=await load('../src/components/RegimeSummary.tsx', [
+  [/from ['"]react\/jsx-runtime['"]/g,`from '${import.meta.resolve('react/jsx-runtime')}'`],
+  [/from ['"]..\/markets\/format['"]/g,`from '${formatting.url}'`],
+])
 const component=await load('../src/components/HistoryChart.tsx', [
+  [/from ['"]..\/history\/regimes['"]/g,`from '${regimeApi.url}'`],
+  [/from ['"]..\/history\/regimeChart['"]/g,`from '${regimeCharts.url}'`],
+  [/from ['"].\/RegimeSummary['"]/g,`from '${regimeView.url}'`],
   [/from ['"]..\/markets\/format['"]/g,`from '${formatting.url}'`],
   [/from ['"]react['"]/g,`from '${import.meta.resolve('react')}'`],
   [/from ['"]react\/jsx-runtime['"]/g,`from '${import.meta.resolve('react/jsx-runtime')}'`],
@@ -146,4 +158,15 @@ test('formatted compact displays preserve exact OHLC and indicator inspection st
   assert.match(html,/83,415.32/);assert.match(html,/423.36/);assert.match(html,/0.2593%/)
   assert.match(html,/83415.32000000/);assert.match(html,/Exact: 423.35733606088409620180230675811334041567187877481/)
   assert.equal(data.features[1].realized_volatility,'0.00259252')
+})
+
+
+test('misaligned regimes leave the actual candle chart and intelligence usable',()=>{
+ const d=dataset();const stored=candles(d)
+ const regimeRows=d.features.map((r,i)=>({open_time:r.open_time,close_time:r.close_time,regime:'UNKNOWN',candidate_regime:'UNKNOWN',confirmation:{count:0,required:0,previous_regime:null,retained_previous:false,available_candles:i+1,candidate_history_required:53},evidence:{},reason_codes:['WARMUP_REQUIRED']}))
+ regimeRows[1].open_time='2026-10-17T00:00:00Z'
+ const regimeData={canonical_symbol:'BTC/USDT',provider:'BINANCE',timeframe:'1h',candle_count:2,regimes:regimeRows,dataset_start:stored[0].open_time,dataset_end:stored[1].close_time,latest_regime:regimeRows[1],regime_engine_version:'1.0.0'}
+ const html=renderToStaticMarkup(React.createElement(component.module.default,{candles:stored,intelligence:d,intelligenceError:'',regimes:regimeData,regimeError:''}))
+ assert.match(html,/Regimes do not align/);assert.match(html,/Inspect candle/);assert.match(html,/Latest available ATR14/)
+ assert.doesNotMatch(html,/categorical regime strip/);assert.doesNotMatch(html,/Selected candle regime/)
 })
