@@ -5,6 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.health import router as health_router
+from app.assets.router import router as assets_router
+from app.instruments.router import router as instruments_router
 from app.auth.oauth import create_oauth
 from app.auth.router import router as auth_router
 from app.core.config import Settings, get_settings
@@ -44,6 +46,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(health_router, prefix="/api")
     application.include_router(auth_router, prefix="/api")
     application.include_router(portfolio_router, prefix="/api")
+    application.include_router(assets_router, prefix="/api")
+    application.include_router(instruments_router, prefix="/api")
     return application
 
 

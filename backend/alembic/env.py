@@ -2,6 +2,8 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 from app.core.config import get_settings
 from app.db.base import Base
+from app.assets.models import Asset  # noqa: F401
+from app.instruments.models import Instrument  # noqa: F401
 from app.portfolio.models import PaperPortfolio  # noqa: F401
 from app.users.models import User  # noqa: F401
 from app.auth.models import AuthSession  # noqa: F401

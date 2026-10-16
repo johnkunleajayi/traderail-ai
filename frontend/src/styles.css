@@ -434,3 +434,26 @@ button:disabled { opacity: .6; cursor: wait; }
   .paper-portfolio-heading h2 { font-size: 24px; }
   .paper-environment { padding: 7px 9px; font-size: 9px; gap: 5px; }
 }
+
+/* Read-only canonical instrument reference. */
+.markets-section { display: block; margin-top: 24px; padding: 32px; }
+.markets-section:hover { transform: none; }
+.markets-heading,.market-reference-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.markets-heading h2 { font-size: 28px; }
+.markets-reference-label { color: var(--muted); font-size: 11px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; white-space: nowrap; }
+.markets-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; list-style: none; margin: 25px 0 0; padding: 0; }
+.market-reference { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 20px; background: var(--surface); }
+.market-reference-title h3 { font-size: 18px; font-weight: 600; letter-spacing: -.4px; margin: 0; overflow-wrap: anywhere; }
+.market-type { font-size: 9px; letter-spacing: 1.2px; color: var(--brand-text); background: var(--soft); border-radius: 4px; padding: 5px 7px; flex-shrink: 0; }
+.market-reference p { font-size: 12px; margin: 11px 0 15px; overflow-wrap: anywhere; }
+.market-status { color: var(--muted); font-size: 11px; text-transform: capitalize; }
+.markets-section .markets-coming-next { font-size: 12px; line-height: 1.6; margin: 23px 0 0; padding-top: 19px; border-top: 1px solid var(--line); }
+.markets-message { padding-block: 25px 0; color: var(--muted); font-size: 13px; }
+.markets-message p { margin-bottom: 14px; }
+.markets-message button { font-size: 11px; padding: 8px 13px; }
+@media(max-width:680px) {
+  .markets-section { padding: 23px; min-height: auto; }
+  .markets-heading h2 { font-size: 24px; }
+  .markets-list { grid-template-columns: minmax(0,1fr); }
+  .market-reference { padding: 18px; }
+}
