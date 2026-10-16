@@ -1,6 +1,8 @@
 import { ArrowRight, ChartNoAxesColumnIncreasing, Check, Circle, Clock3, Code2, FlaskConical, Layers3, Link2, LockKeyhole, Monitor, Palette, ShieldCheck, Workflow, Zap } from 'lucide-react'
 import { Card, LinkButton, SectionLabel } from './components/ui'
 import ThemeToggle from './components/ThemeToggle'
+import AuthExperience from './components/AuthExperience'
+import { googleLoginUrl } from './auth/api'
 import BrandLogo from './components/BrandLogo'
 import ProductPreview, { ConceptChart } from './components/ProductPreview'
 
@@ -19,14 +21,14 @@ const foundations = [
   {icon: Clock3, text:'Trading capabilities will arrive in future releases.'},
 ]
 export default function App() {
-  return <div className="app-shell" id="top">
+  return <AuthExperience><div className="app-shell" id="top">
     <a className="skip-link" href="#main">Skip to content</a>
     <div className="hero-background">
       <div className="ambient-ribbon ribbon-one" aria-hidden="true"/><div className="ambient-ribbon ribbon-two" aria-hidden="true"/>
       <header className="header container">
         <a href="#top" className="brand-link" aria-label="TradeRail home"><BrandLogo/></a>
         <nav aria-label="Main navigation"><a href="#top" className="active">Home</a><a href="#approach">The Approach</a><a href="#roadmap">Roadmap</a><a href="#foundation">Foundation</a></nav>
-        <div className="header-end"><ThemeToggle/><LinkButton href="#foundation" className="header-cta">Explore TradeRail</LinkButton></div>
+        <div className="header-end"><ThemeToggle/><LinkButton href={googleLoginUrl} className="header-cta google-action">Continue with Google</LinkButton></div>
       </header>
       <main id="main">
         <section className="hero container">
@@ -56,5 +58,5 @@ export default function App() {
       </main>
     </div>
     <footer className="container footer"><div><a href="#top" className="brand-link" aria-label="TradeRail home"><BrandLogo/></a><p>Systematic trading. Engineered for control.</p></div><nav aria-label="Footer navigation"><strong>Product</strong><a href="#approach">The Approach</a><a href="#roadmap">Roadmap</a><a href="#foundation">Foundation</a></nav><div className="footer-status"><span>Foundation / V0.1</span><p>A deliberate beginning.</p><span className="footer-note">Trading capabilities are not yet available.</span></div></footer>
-  </div>
+  </div></AuthExperience>
 }

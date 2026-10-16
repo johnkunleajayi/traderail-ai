@@ -3,7 +3,7 @@ Systematic trading. Engineered for control.
 
 Foundation only: React/TypeScript/Vite/Tailwind frontend with reusable primitives, design tokens and persistent themes; modular FastAPI backend with PostgreSQL configuration, SQLAlchemy, Alembic, CORS and application liveness.
 
-Research, Paper Trading, Risk Control and Live Execution are planned concepts. No authentication, exchange integration, market data, strategies, trading or billing is implemented.
+Research, Paper Trading, Risk Control and Live Execution are planned concepts. Google sign-in and the PostgreSQL User/session foundation are implemented. Exchange integration, market data, strategies, trading and billing remain deferred.
 
 ## Location
 C:\Users\JOHN-KUNLE\OneDrive\Desktop\traderail
@@ -46,7 +46,9 @@ TRADERAIL_DATABASE_URL=postgresql+psycopg://traderail:YOUR_URL_ENCODED_PASSWORD@
 Set-Location 'C:\Users\JOHN-KUNLE\OneDrive\Desktop\traderail\backend'
 .\.venv\Scripts\python.exe -m alembic upgrade head
 ~~~
-There are no domain tables or migration revisions yet. Migrations are explicit operational steps.
+Migration 0001_users_and_sessions creates users and revocable auth sessions. Migrations are explicit operational steps.
 
 ## Deployment and architecture
 See docs/deployment.md and docs/foundation.md. Frontend and backend use separate Vercel deployment projects from this same repository. The backend is one modular monolith. No deployment has been performed. Credentials remain server-side.
+## Google sign-in
+See docs/authentication.md for exact environment variables, Google Cloud setup, local URLs, session security and verification limits.

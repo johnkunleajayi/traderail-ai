@@ -4,3 +4,6 @@ SQLAlchemy>=2.0,<3
 psycopg[binary]>=3.2,<4
 alembic>=1.15,<2
 pydantic-settings>=2.8,<3
+Authlib>=1.9.1,<2
+itsdangerous>=2.2,<3
+httpx>=0.28,<1

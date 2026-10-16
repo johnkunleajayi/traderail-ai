@@ -20,3 +20,4 @@ Deployment and hosted PostgreSQL connectivity have not been tested.
 References:
 https://vercel.com/docs/frameworks/frontend/vite
 https://vercel.com/docs/frameworks/backend/fastapi
+Google authentication deployment: see authentication.md for backend-only credentials, Secure cookie settings, exact origins and the frontend VITE_API_BASE_URL setting. The previous no-credentials statement applies to the static foundation; Google sign-in now requires these backend environment variables.

@@ -53,3 +53,8 @@ temp/
 .aws/
 .ssh/
 .codex/
+
+/dark.png
+/icon.png
+/landing.png
+/light.png
