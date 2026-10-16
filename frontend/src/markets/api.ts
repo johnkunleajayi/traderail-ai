@@ -38,3 +38,30 @@ export async function readQuidaxAvailability(signal?: AbortSignal): Promise<Set<
   return new Set(data.filter(item => item.status === 'active' && item.venue.status === 'active')
     .map(item => item.instrument.canonical_symbol))
 }
+
+export interface MarketTicker {
+  canonical_symbol: string
+  quote_currency: string
+  venue: string
+  last_price: string
+  source_timestamp: string | null
+  retrieved_at: string
+}
+export async function readTicker(canonicalSymbol: string, signal?: AbortSignal): Promise<MarketTicker> {
+  const response = await fetch(`${apiBase}/api/market-data/tickers/${encodeURIComponent(canonicalSymbol)}`, {
+    method: 'GET', credentials: 'omit', cache: 'no-store', signal,
+  })
+  if (!response.ok) throw new Error('Market price is temporarily unavailable.')
+  const data: unknown = await response.json()
+  const item = data as Partial<MarketTicker> | null
+  if (!item || item.canonical_symbol !== canonicalSymbol || item.venue !== 'QUIDAX'
+    || typeof item.quote_currency !== 'string' || !item.quote_currency
+    || typeof item.last_price !== 'string' || !/^\d+(?:\.\d+)?$/.test(item.last_price)
+    || !/[1-9]/.test(item.last_price) || item.last_price.length > 256
+    || typeof item.retrieved_at !== 'string' || !Number.isFinite(Date.parse(item.retrieved_at))
+    || !(item.source_timestamp === null || (typeof item.source_timestamp === 'string'
+      && Number.isFinite(Date.parse(item.source_timestamp))))) {
+    throw new Error('Market price could not be read.')
+  }
+  return item as MarketTicker
+}

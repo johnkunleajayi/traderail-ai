@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { readInstruments, readQuidaxAvailability, type InstrumentReference } from '../markets/api'
 import { Card, SectionLabel } from './ui'
+import MarketTicker from './MarketTicker'
 
 export default function MarketsSection() {
   const [instruments, setInstruments] = useState<InstrumentReference[] | null>(null)
@@ -29,7 +30,7 @@ export default function MarketsSection() {
     return () => controller.abort()
   }, [attempt])
   return <Card className="markets-section" aria-labelledby="markets-heading">
-    <div className="markets-heading"><div><SectionLabel>CANONICAL INSTRUMENTS</SectionLabel><h2 id="markets-heading">Markets</h2></div><span className="markets-reference-label">Reference only</span></div>
+    <div className="markets-heading"><div><SectionLabel>CANONICAL INSTRUMENTS</SectionLabel><h2 id="markets-heading">Markets</h2></div><span className="markets-reference-label">Public market data</span></div>
     {availabilityError && !error && <div className="markets-message" role="status"><p>{availabilityError}</p><button className="button button-secondary" onClick={() => setAttempt(value => value + 1)}>Retry</button></div>}
     {error ? <div className="markets-message" role="status"><p>{error}</p><button className="button button-secondary" onClick={() => setAttempt(value => value + 1)}>Retry</button></div>
       : instruments === null ? <p className="markets-message" role="status">Loading instruments…</p>
@@ -38,6 +39,7 @@ export default function MarketsSection() {
         <li className="market-reference" key={instrument.canonical_symbol}>
           <div className="market-reference-title"><h3>{instrument.canonical_symbol}</h3><span className="market-type">{instrument.market_type}</span></div>
           <p>{instrument.base_asset.name} · {instrument.quote_asset.name}</p>
+          {availability?.has(instrument.canonical_symbol) && <MarketTicker canonicalSymbol={instrument.canonical_symbol}/>}
           <div className="market-reference-footer">
             <span className="market-status">{instrument.status}</span>
             <span className={`market-venue${availability?.has(instrument.canonical_symbol) ? ' market-venue-available' : ''}`}>
@@ -48,6 +50,6 @@ export default function MarketsSection() {
           </div>
         </li>
       )}</ul>}
-    <p className="markets-coming-next">Live market data is coming in the next stage.</p>
+    <p className="markets-coming-next">Public ticker snapshots from Quidax. Refresh to request an updated price.</p>
   </Card>
 }

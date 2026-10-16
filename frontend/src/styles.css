@@ -460,3 +460,14 @@ button:disabled { opacity: .6; cursor: wait; }
   .markets-list { grid-template-columns: minmax(0,1fr); }
   .market-reference { padding: 18px; }
 }
+
+.market-ticker { margin: 16px 0; padding: 16px 0; border-block: 1px solid var(--line); }
+.market-price-label { color: var(--muted); font-size: 10px; }
+.market-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.market-price strong { color: var(--text); font-size: 23px; font-weight: 600; letter-spacing: -.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+.market-price > span { color: var(--muted); font-size: 11px; }
+.market-ticker-time { display: grid; gap: 4px; margin-top: 10px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.market-reference .market-price-state { margin: 10px 0; font-size: 13px; }
+.market-refresh { margin-top: 12px; color: var(--brand-text); font-size: 11px; background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; cursor: pointer; transition: background .15s; }
+.market-refresh:hover:not(:disabled) { background: var(--soft); }
+.market-refresh:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
