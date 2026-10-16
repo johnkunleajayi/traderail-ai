@@ -5,6 +5,7 @@ import BrandLogo from './BrandLogo'
 import ThemeToggle from './ThemeToggle'
 import PaperPortfolioSummary from './PaperPortfolioSummary'
 import MarketsSection from './MarketsSection'
+import MarketHistory from './MarketHistory'
 import { Card, SectionLabel } from './ui'
 
 export default function AuthExperience({ children }: { children: ReactNode }) {
@@ -51,6 +52,7 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
       <Card className="profile-card"><div className="user-avatar">{user.avatar_url ? <img src={user.avatar_url} alt="" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none' }}/>: <UserRound size={26}/>}</div><div><h2>{user.name}</h2><p>{user.email}</p></div></Card>
       <PaperPortfolioSummary onSessionExpired={clearUser}/>
       <MarketsSection/>
+      <MarketHistory/>
     </main>
   </div>
 }
