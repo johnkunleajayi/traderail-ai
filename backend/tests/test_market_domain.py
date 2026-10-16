@@ -85,11 +85,13 @@ def test_instrument_constraints_and_precision():
 
 
 def test_seed_has_only_requested_reference_data(domain):
-    assert set(domain.assets) == {"BTC", "ETH", "USD"}
-    assert set(domain.instruments) == {"BTC/USD", "ETH/USD"}
+    assert set(domain.assets) == {"BTC", "ETH", "USD", "USDT", "NGN"}
+    assert set(domain.instruments) == {"BTC/USD", "ETH/USD", "BTC/USDT", "ETH/USDT", "BTC/NGN", "ETH/NGN", "USDT/NGN"}
     assert {item.market_type for item in domain.instruments.values()} == {"SPOT"}
     assert domain.assets["BTC"].asset_type == domain.assets["ETH"].asset_type == "CRYPTO"
-    assert domain.assets["USD"].asset_type == "FIAT"
+    assert domain.assets["USD"].asset_type == domain.assets["NGN"].asset_type == "FIAT"
+    assert domain.assets["USDT"].asset_type == "STABLECOIN"
+    assert "USD/NGN" not in domain.instruments
 
 
 def test_seed_ids_are_deterministic(domain):
@@ -108,7 +110,7 @@ def test_repeated_seed_preserves_rows_ids_and_metadata(domain):
     domain.instruments["BTC/USD"].price_precision = 4
     seed_market_domain(domain.db)
     seed_market_domain(domain.db)
-    assert len(domain.assets) == 3 and len(domain.instruments) == 2
+    assert len(domain.assets) == 5 and len(domain.instruments) == 7
     assert {key: value.id for key, value in domain.instruments.items()} == original_ids
     assert domain.assets["BTC"].name == "Preserved reference name"
     assert domain.instruments["BTC/USD"].status == "disabled"
@@ -123,7 +125,7 @@ def test_assets_listing_is_public_and_read_only(domain):
     before = len(domain.statements)
     response = domain.client.get("/api/assets")
     assert response.status_code == 200
-    assert [item["symbol"] for item in response.json()] == ["BTC", "ETH", "USD"]
+    assert [item["symbol"] for item in response.json()] == ["BTC", "ETH", "NGN", "USD", "USDT"]
     assert response.json()[0] == {"symbol": "BTC", "name": "Bitcoin", "asset_type": "CRYPTO", "status": "active"}
     assert len(domain.statements) == before
     domain.db.commit.assert_not_called()
@@ -133,17 +135,17 @@ def test_assets_listing_is_public_and_read_only(domain):
 def test_instruments_listing(domain):
     response = domain.client.get("/api/instruments")
     assert response.status_code == 200
-    assert [item["canonical_symbol"] for item in response.json()] == ["BTC/USD", "ETH/USD"]
+    assert [item["canonical_symbol"] for item in response.json()] == ["BTC/NGN", "BTC/USD", "BTC/USDT", "ETH/NGN", "ETH/USD", "ETH/USDT", "USDT/NGN"]
     for item in response.json():
         assert item["market_type"] == "SPOT"
-        assert item["quote_asset"]["symbol"] == "USD"
+        assert item["base_asset"]["symbol"] + "/" + item["quote_asset"]["symbol"] == item["canonical_symbol"]
         assert isinstance(item["price_precision"], int)
         assert isinstance(item["quantity_precision"], int)
         assert set(item) == {"canonical_symbol", "base_asset", "quote_asset", "market_type", "status",
                              "price_precision", "quantity_precision"}
 
 
-@pytest.mark.parametrize("symbol", ["BTC/USD", "ETH/USD", "BTC%2FUSD"])
+@pytest.mark.parametrize("symbol", ["BTC/USD", "ETH/USD", "BTC%2FUSD", "BTC/USDT", "ETH/USDT", "BTC/NGN", "ETH/NGN", "USDT/NGN"])
 def test_canonical_symbol_lookup(domain, symbol):
     response = domain.client.get("/api/instruments/" + symbol)
     assert response.status_code == 200
@@ -166,7 +168,7 @@ def test_no_venue_or_market_data_fields():
     assert set(Instrument.__table__.columns.keys()) == {
         "id", "base_asset_id", "quote_asset_id", "canonical_symbol", "market_type",
         "status", "price_precision", "quantity_precision", "created_at", "updated_at"}
-    assert set(seed["canonical_symbol"] for seed in INSTRUMENT_SEEDS) == {"BTC/USD", "ETH/USD"}
+    assert set(seed["canonical_symbol"] for seed in INSTRUMENT_SEEDS) == {"BTC/USD", "ETH/USD", "BTC/USDT", "ETH/USDT", "BTC/NGN", "ETH/NGN", "USDT/NGN"}
 
 
 def test_database_errors_are_sanitized(domain):

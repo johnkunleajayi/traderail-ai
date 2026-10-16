@@ -11,6 +11,8 @@ ASSET_SEEDS = (
     {"id": uuid5(SEED_NAMESPACE, "asset:BTC"), "symbol": "BTC", "name": "Bitcoin", "asset_type": "CRYPTO", "status": "active"},
     {"id": uuid5(SEED_NAMESPACE, "asset:ETH"), "symbol": "ETH", "name": "Ethereum", "asset_type": "CRYPTO", "status": "active"},
     {"id": uuid5(SEED_NAMESPACE, "asset:USD"), "symbol": "USD", "name": "US Dollar", "asset_type": "FIAT", "status": "active"},
+    {"id": uuid5(SEED_NAMESPACE, "asset:USDT"), "symbol": "USDT", "name": "Tether", "asset_type": "STABLECOIN", "status": "active"},
+    {"id": uuid5(SEED_NAMESPACE, "asset:NGN"), "symbol": "NGN", "name": "Nigerian Naira", "asset_type": "FIAT", "status": "active"},
 )
 
 

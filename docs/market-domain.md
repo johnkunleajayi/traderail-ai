@@ -9,7 +9,7 @@ instruments: PostgreSQL UUID id, base_asset_id and quote_asset_id foreign keys t
 
 Constraints reject identical base/quote assets, duplicate base/quote/market combinations, malformed canonical symbols, and precision counts outside 0..18. Precision fields are integer decimal-place metadata, not prices or floats. Initial domain precision is 2 price decimals and 8 quantity decimals; it is not a claim about any venue's supported increments or order rules.
 
-Initial reference data is exactly:
+The original 0003 reference data was:
 - BTC: Bitcoin, CRYPTO
 - ETH: Ethereum, CRYPTO
 - USD: US Dollar, FIAT
@@ -54,15 +54,15 @@ Example instrument:
 ~~~
 Internal IDs/timestamps and all price/venue data are omitted.
 
-## Future venue mappings
+## Venue mappings
 The canonical Instrument model has no exchange, provider, venue or provider-symbol columns. A future mapping module can reference instrument.id and venue.id, with its own venue_symbol and uniqueness rules. It must not rename canonical instruments to match provider naming.
 
 market_type uses a bounded uppercase string rather than a SPOT-only enum. Only SPOT is seeded or implemented now. If a future market type shares a base/quote pair, its canonical naming policy must maintain global symbol uniqueness; the syntax allows a colon qualifier for that future policy without adding any such instrument now.
-No venue model, mapping table, adapter or provider connection is implemented in this task.
+Venue metadata and separate mappings were subsequently added in milestone 5A; see [venues-and-mappings.md](venues-and-mappings.md). No provider adapter or user account connection exists.
 
 ## Verification boundary
 Unit tests mock SQLAlchemy boundaries. A separate real-Neon verification applies the migration, reruns the seeds, checks exact row counts/deterministic IDs, exercises public API reads against PostgreSQL, and attempts invalid rows inside a rolled-back transaction. No user, session or portfolio records are changed.
-## Implementation verification results
+## Original 0003 verification results (historical)
 - Complete backend tests: 62 passed, with the two existing Starlette/Authlib legacy-httpx deprecation warnings.
 - pip check and unchanged frontend production build: passed.
 - Neon revision: 0003_market_domain (head).
@@ -73,3 +73,6 @@ Unit tests mock SQLAlchemy boundaries. A separate real-Neon verification applies
 - No provider connections, market-data fields or extra instruments were introduced.
 - Frontend, authentication/portfolio code and existing tests, favicon and approved brand assets remain unchanged.
 - Secret scan passed. No new dependencies, staging, commits or pushes.
+
+## Milestone 5A reference expansion
+The current universe is BTC, ETH, USD, USDT (STABLECOIN), NGN (FIAT), with BTC/USD, ETH/USD, BTC/USDT, ETH/USDT, BTC/NGN, ETH/NGN and USDT/NGN. USD and USDT are distinct assets. The incremental 0005_expanded_market_mappings migration preserves original rows and adds the approved reference data plus catalogue-verified mappings. The canonical model remains venue-neutral. Current verification: 80 backend tests passed; Neon has five assets and seven instruments, with idempotent seeds and unchanged original metadata. See the venue document for exact mappings and current migration details.

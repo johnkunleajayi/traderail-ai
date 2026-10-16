@@ -10,11 +10,14 @@ from app.instruments.models import Instrument
 
 INSTRUMENT_SEEDS = tuple(
     {
-        "id": uuid5(SEED_NAMESPACE, "instrument:SPOT:" + base + "/USD"),
-        "base_symbol": base, "quote_symbol": "USD", "canonical_symbol": base + "/USD",
+        "id": uuid5(SEED_NAMESPACE, "instrument:SPOT:" + base + "/" + quote),
+        "base_symbol": base, "quote_symbol": quote, "canonical_symbol": base + "/" + quote,
         "market_type": "SPOT", "status": "active", "price_precision": 2, "quantity_precision": 8,
     }
-    for base in ("BTC", "ETH")
+    for base, quote in (
+        ("BTC", "USD"), ("ETH", "USD"), ("BTC", "USDT"), ("ETH", "USDT"),
+        ("BTC", "NGN"), ("ETH", "NGN"), ("USDT", "NGN"),
+    )
 )
 
 

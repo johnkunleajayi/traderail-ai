@@ -11,6 +11,7 @@ from app.auth.oauth import create_oauth
 from app.auth.router import router as auth_router
 from app.core.config import Settings, get_settings
 from app.portfolio.router import router as portfolio_router
+from app.venues.router import router as venues_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(portfolio_router, prefix="/api")
     application.include_router(assets_router, prefix="/api")
     application.include_router(instruments_router, prefix="/api")
+    application.include_router(venues_router, prefix="/api")
     return application
 
 
