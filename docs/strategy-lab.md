@@ -1,4 +1,4 @@
-# Strategy Lab foundation — complete Milestone 9A
+# Strategy Lab foundation — Milestone 9A and 9B Parts 1–3
 
 This is a pure backend research foundation: dataset/experiment specifications, cost assumptions, metric primitives, validation definitions, comparison benchmarks and lifecycle labels. It is not a strategy or backtester. It imports the existing immutable Market Intelligence candle/context types and their pure completed-candle validator. It does not access SQLAlchemy, FastAPI, external providers, clocks, storage or the frontend. Existing intelligence and regime calculations are untouched.
 
@@ -189,3 +189,218 @@ backend/app/strategy_lab/
 Offline tests cover all three parts, including chronology, overlap/leakage rejection, warm-up exclusion, immutable definitions, benchmark period binding, lifecycle non-promotion and identity sensitivity to research assumptions. Existing Intelligence/Regime engines, API contracts, authentication, portfolio, provider adapters, frontend, approved assets and database schema are outside this implementation.
 
 Remaining work for subsequent milestones includes explicitly scoped strategy definitions, backtest execution/accounting and empirical evaluation/reporting. Metric primitives and validation/benchmark definitions alone do not implement those capabilities. No approved allocation of that work among 9B/9C/9D is assumed here. Actual strategy/Adaptive Trend, parameter optimization, order simulation, TradeIntent, Risk Engine, paper/live execution, APIs, frontend, migrations and ML are absent.
+
+## Milestone 9B Part 1 — pure strategy contract
+
+A new `backend/app/strategies/` module supplies immutable analytical inputs and decisions plus a reusable protocol. It reuses 9A canonical serialization/configuration snapshots without modifying 9A, Market Intelligence or Regime Engine code. Part 1 supplies the contract only. Part 2 adds the concrete Adaptive Trend family below; no backtest runner or execution behavior exists.
+
+### Explicit immutable strategy definition
+
+`StrategyDefinition(family, version, parameters)` requires an uppercase family identifier, an explicit version and a configuration mapping. Parameters are deeply copied into read-only mappings/tuples. Existing tagged canonical serialization preserves exact Decimal values, rejects float/non-finite/unsupported values, and makes dictionary ordering and equivalent Decimal scales irrelevant to identity. The full snapshot remains available alongside read-only parameters.
+
+`configuration_identity` is SHA-256 over versioned `strategy.configuration/v1` canonical data containing family, version and the existing configuration fingerprint. Family/version/meaningful parameter changes alter identity. No registry, automatic versioning, lifecycle promotion or parameter selection is performed.
+
+### Single-observation strategy input
+
+`StrategyInput(context, candle, intelligence, regime, definition, as_of, position_state=PositionState.CASH)` uses the existing pure `DatasetContext`, `Candle`, `FeatureRow` and `RegimeResult` types. All are immutable. This contract exposes one current analytical observation, not an unrestricted history collection. Existing indicators and regime evidence already summarize permitted past data; future raw rows cannot be appended through an input history field.
+
+Validation requires:
+
+- A valid canonical instrument/provider/timeframe and correctly linked candle instrument UUID.
+- A completed valid Decimal OHLCV candle at the supplied aware `as_of` boundary, with retrieval time no later than `as_of`.
+- All current Market Intelligence numerical measurements present as finite Decimals. Individual indicator warm-up nulls are rejected; callers must wait for complete intelligence rather than substituting zeros.
+- Matching canonical symbol/provider/timeframe across candle context, intelligence and regime.
+- Exactly matching UTC open/close timestamps; shifted, future, naive or missing analytical timestamps are rejected.
+- Intelligence close equal to candle close; available mirrored regime measurements equal to the supplied intelligence values.
+- Typed regime/version/evidence metadata, immutable reason codes, valid numeric types/counts and confirmation structure. Existing confirmation streaks can exceed their required count and are preserved without capping.
+
+The existing pure candle and intelligence validators are reused. Intelligence validation runs in the existing isolated Decimal context; indicators and regimes are not recomputed. Complete `UNKNOWN` and `UNSAFE` regime rows can be supplied honestly. This contract does not force either into a decision or reinterpret classification semantics. Malformed/incomplete rows are rejected before strategy evaluation.
+
+`as_of` is a caller-supplied observational completion/availability boundary, not an implicit clock call. Historical candle retrieval can occur after candle completion. It does not allow a later analytical row to be substituted for T. The contract cannot prove the mathematical provenance of an externally forged finite measurement; consumers must supply trusted existing engine output, calculated causally at T. It neither fetches history nor audits/recalculates upstream formulas.
+
+`input_identity` now fingerprints `strategy.input/v2` (Part 2 adds thesis state): canonical context, complete candle snapshot including retrieval provenance, intelligence row, complete regime evidence/configuration/engine versions strategy configuration identity and explicit thesis state. Database-local UUIDs are validated but excluded from canonical content identity, consistent with 9A. Equivalent UTC representations preserve identity. `as_of` is excluded because later inspection of the same completed snapshot is not a new analytical input.
+
+### Analytical decision model
+
+`DecisionType` contains exactly `ENTER_LONG`, `EXIT_LONG`, `ENTER_SHORT`, `EXIT_SHORT`, `NO_ACTION`. There is no `HOLD`. NO_ACTION means no analytical action; it does not assert that an existing position should be held or that the account is in cash.
+
+`StrategyDecision(observation, decision, reason_codes, evidence)` derives family/version/configuration/input identity and its UTC timestamp from the validated input. Timestamp is the current candle's close time, never generated wall-clock time. It contains:
+
+- strategy family/version;
+- timestamp and decision type;
+- an explicit ordered tuple of distinct deterministic reason codes;
+- deeply immutable canonical-compatible evidence with Decimal values intact;
+- configuration, input and decision identities.
+
+`decision_identity` is SHA-256 over versioned `strategy.decision/v1` data covering all these semantic fields and the full input identity. Identical analytical snapshots/output/configuration reproduce the same identity. Changing a decision, reason codes, evidence, configuration or analytical snapshot changes it. No profit probability is included.
+
+The closed, frozen, slotted schema has no order, TradeIntent, quantity, position size, venue account or execution authority fields. Configuration/evidence also reject reserved execution/order/sizing/credential/profit-probability keys, including nested mappings. These checks enforce the intended data contract; they are not a semantic or security sandbox for arbitrary Python or free-text values.
+
+Long and short entry/exit descriptions are independent of execution venue capability. A SHORT decision can exist for an instrument whose initial Quidax spot execution would not support shorting. No venue lookup or execution eligibility is evaluated here. Future consumers can represent LONG/SHORT/CASH exposure separately; this contract neither infers current exposure nor turns NO_ACTION into a CASH/HOLD assertion.
+
+### Reusable strategy protocol
+
+`Strategy` requires an explicit immutable `definition` and `decide(StrategyInput) -> StrategyDecision`. Implementations must be deterministic and may use only the supplied current/past canonical analytical information. They must not call providers/databases/venues, place orders, size positions, use clocks/randomness or obtain future observations.
+
+`evaluate_strategy` validates one input/definition pair, invokes the supplied contract once and verifies the returned decision's type, context identity, configuration and timestamp binding. It does not select a family, calculate thresholds, run a backtest, authorize execution or call external services. Structural typing cannot stop a malicious implementation from performing external I/O; runtime isolation is not implemented. Determinism is an implementation obligation, verified with repeated-input tests, not inferred from an interface alone.
+
+The unconditional NO_ACTION implementation remains a test fixture. Part 2 supplies Adaptive Trend directly, without a strategy registry.
+
+### Module and test scope
+
+```text
+backend/app/strategies/
+  __init__.py
+  configuration.py  # Immutable strategy metadata/parameters and reason-code validation
+  inputs.py         # Canonical single-observation validation and identity
+  decisions.py      # Five analytical decision types and deterministic identity
+  contract.py       # Protocol and single-input/output boundary checks
+```
+
+Focused offline tests cover deep immutability, five decision types, NO_ACTION, configuration identity, malformed/mismatched/incomplete/future inputs, exact timestamps/Decimal values, execution-field rejection, confirmation-streak compatibility, repeated identities and fresh-process imports without providers/database/API modules. Existing 9A tests remain unchanged. Part 1 itself adds no family rules. No API, frontend, migration, persisted decision, profit model, sizing, TradeIntent, Risk Engine or order/paper/live execution is added by either contract or family.
+
+## Milestone 9B Part 2 — ADAPTIVE_TREND v1.0.0
+
+`AdaptiveTrendStrategy` is the first concrete, stateless strategy. It identifies analytical opportunities and directional-thesis invalidation from a single validated StrategyInput. It does not execute, size positions, predict profit or calculate indicators. No parameters were selected/tuned against the current stored BTC/ETH observations. Every initial threshold below is an unvalidated research hypothesis for later empirical evaluation.
+
+### Minimal thesis-state extension
+
+`PositionState` contains exactly `CASH`, `LONG`, `SHORT`. StrategyInput adds only `position_state`, defaulting to CASH for constructor compatibility. It records the caller-declared analytical thesis; it is not an account holding or a position database model and contains no size, P&L or execution information. Callers evaluating an existing directional thesis must explicitly supply LONG/SHORT.
+
+Input identity changes from `strategy.input/v1` to **`strategy.input/v2`** and includes state. Consequently even legacy/default-CASH inputs receive a new identity namespace; decision identities change transitively. Configuration/decision serialization formats are otherwise unchanged. Identical snapshots with different thesis states have different input identities. Existing Part 1 tests remain unmodified; no other Part 1 production code changes.
+
+### Central configuration (defaults)
+
+All configurable hypotheses reside in immutable `AdaptiveTrendConfiguration`; all values below except confirmation counts are Decimal. The full configuration enters the existing StrategyDefinition identity under family `ADAPTIVE_TREND`, version `1.0.0`.
+
+| Parameter | Default | Convention |
+| --- | --- | --- |
+| minimum_regime_confirmations | 3 | Required streak is max(this, source confirmation_required) |
+| entry_min_ema_spread | 0.0015 | Signed EMA20–EMA50 separation normalized by close |
+| entry_fast_slope | 0.0002 | Minimum directional EMA20 slope from regime evidence |
+| entry_slow_slope | 0.0001 | Minimum directional EMA50 slope from regime evidence |
+| long_rsi_min / long_rsi_max | 55 / 70 | Inclusive long-entry RSI band |
+| short_rsi_min / short_rsi_max | 30 / 45 | Inclusive short-entry RSI band |
+| entry_min_normalized_histogram | 0.0001 | Minimum directional MACD histogram / close |
+| max_normalized_atr | 0.02 | Maximum ATR14 / close |
+| max_realized_volatility | 0.02 | Maximum existing unannualized realized volatility |
+| max_volatility_ratio | 2 | Maximum current volatility / prior baseline from regime evidence |
+| max_atr_ratio | 2 | Maximum normalized ATR / prior baseline from regime evidence |
+| exit_confirmation_dimensions | 2 | Two or three deterioration dimensions permitted |
+| exit_min_ema_spread | 0.0005 | Minimum reversed normalized EMA spread magnitude |
+| exit_fast_slope / exit_slow_slope | 0.0001 / 0.00005 | Minimum reversed EMA slope magnitudes |
+| exit_long_rsi / exit_short_rsi | 50 / 50 | Directional deterioration thresholds |
+| exit_min_normalized_histogram | 0.00005 | Minimum reversed normalized histogram magnitude |
+
+Configurations reject non-Decimal, non-finite or non-positive numeric thresholds, invalid RSI bands, non-positive/bool confirmation counts and exit dimension counts outside 2–3. Indicator windows and slope/baseline conventions are inherited from the supplied intelligence/regime output and not recalculated. These defaults are uniform across instruments/timeframes; suitability is not established. Normalized thresholds avoid raw dollar cutoffs. All comparison logic uses Decimal values, with no float conversion or context-dependent financial arithmetic.
+
+### Deterministic decision precedence
+
+1. Require the matching typed StrategyDefinition and validated StrategyInput.
+2. UNSAFE → NO_ACTION / DATA_UNSAFE. HIGH_VOLATILITY → NO_ACTION / HIGH_VOLATILITY_REGIME. Both gates apply in all thesis states. Operational risk liquidation is not this strategy's responsibility.
+3. From CASH, RANGE/UNKNOWN/BREAKOUT → NO_ACTION / REGIME_NOT_TRENDING. BREAKOUT alone never creates an entry.
+4. Require existing normalized spread, fast/slow slopes, normalized MACD histogram, normalized ATR, volatility ratio and ATR ratio. Missing values produce ANALYTICAL_EVIDENCE_INCOMPLETE; negative ATR/relative volatility ratios produce ANALYTICAL_EVIDENCE_INVALID. No fallback values are invented.
+5. CASH → evaluate entry agreement; LONG/SHORT → evaluate only existing-thesis invalidation. An exit cannot return a simultaneous opposite entry.
+
+### Entry rules — all six dimensions required
+
+A directional regime is confirmed only when the published regime and candidate both equal the required BULL_TREND/BEAR_TREND, `retained_previous` is false, source confirmation_required is positive, confirmation_count meets both source and strategy requirements, and available_candles meets the positive candidate_history_required. A retained old regime, conflicting candidate or pending confirmation cannot create an entry.
+
+ENTER_LONG from CASH requires:
+
+1. Confirmed BULL_TREND as defined above.
+2. EMA20 > EMA50 and normalized spread >= 0.0015.
+3. EMA20 slope >= 0.0002 and EMA50 slope >= 0.0001.
+4. RSI in [55,70], MACD > 0, MACD > signal, histogram > 0 and normalized histogram >= 0.0001.
+5. Close strictly above both EMAs.
+6. Normalized ATR <= 0.02, unannualized realized volatility <= 0.02, volatility ratio <= 2 and ATR ratio <= 2.
+
+ENTER_SHORT is symmetric: confirmed BEAR_TREND; EMA20 < EMA50 with spread <= -0.0015; slopes <= -0.0002/-0.0001; RSI in [30,45]; MACD < 0, MACD < signal, histogram < 0 and normalized histogram <= -0.0001; close below both EMAs; the same volatility ceilings.
+
+RSI above 70 is not an automatic long entry; RSI below 30 is not an automatic short entry. Under default bands both instead fail entry momentum confirmation. A matching existing LONG/SHORT never receives a duplicate entry. SHORT descriptions are not blocked by Quidax spot capability: this is a venue-neutral analytical decision, not permission to short live.
+
+### Exit rules — trend invalidation, not profit taking
+
+For an existing LONG, return EXIT_LONG if either a fully confirmed BEAR_TREND exists, or at least two (configurable to three) of these dimensions agree:
+
+- Structure: EMA20 <= EMA50, normalized spread <= -0.0005, and close below EMA50.
+- Slopes/price: EMA20 slope <= -0.0001, EMA50 slope <= -0.00005, and close below EMA20.
+- Momentum: RSI <= 50, MACD < signal, histogram < 0, and normalized histogram <= -0.00005.
+
+For an existing SHORT, return EXIT_SHORT on a fully confirmed BULL_TREND or the mirrored two-of-three deterioration: EMA20 >= EMA50, spread >= 0.0005 and close above EMA50; slopes >= 0.0001/0.00005 and close above EMA20; RSI >= 50, MACD > signal, histogram > 0 and normalized histogram >= 0.00005.
+
+An opposite regime is confirmed using the same source/candidate/streak/history check as entry. The alternative deterioration test can invalidate a thesis while the old regime is retained, or while UNKNOWN/RANGE/BREAKOUT has valid evidence; those regimes alone never force an exit. One weak dimension normally produces NO_ACTION. A configured three-dimension requirement demands all three unless the opposite regime is already confirmed. UNSAFE/HIGH_VOLATILITY remain NO_ACTION even here.
+
+Entry volatility ceilings are not standalone exit triggers. Neither extreme RSI nor profit targets/P&L create an exit. There are no stops, risk sizes, position ledger updates or automatic reversals. State remains caller-owned; a returned decision does not change the supplied LONG/SHORT/CASH value.
+
+### Reasons and inspection evidence
+
+Successful entries use LONG_TREND_CONFIRMED / SHORT_TREND_CONFIRMED. Failed entry dimensions appear in deterministic order as REGIME_NOT_CONFIRMED, EMA_STRUCTURE_NOT_CONFIRMED, EMA_SLOPES_NOT_CONFIRMED, MOMENTUM_NOT_CONFIRMED, CLOSE_POSITION_NOT_CONFIRMED, VOLATILITY_TOO_HIGH.
+
+Exit decisions use LONG_TREND_INVALIDATED / SHORT_TREND_INVALIDATED, optionally OPPOSITE_TREND_CONFIRMED, followed by the agreeing EXIT_STRUCTURE_CONFIRMED, EXIT_SLOPES_CONFIRMED and EXIT_MOMENTUM_CONFIRMED codes. Insufficient exit agreement uses LONG_EXIT_NOT_CONFIRMED / SHORT_EXIT_NOT_CONFIRMED. Gate/quality reasons are listed in precedence above.
+
+Evidence preserves current thesis state, regime/candidate/confirmation metadata, relevant existing measurements, entry dimension booleans or exit dimension booleans/counts, and opposite-regime confirmation. StrategyDecision uses the unchanged Part 1 immutable evidence/identity machinery. No profit probability, order fields, execution authority, venue/account information or financial sizing is included.
+
+### Module and limitations
+
+```text
+backend/app/strategies/adaptive_trend/
+  __init__.py
+  config.py     # Explicit v1 hypotheses and validation
+  strategy.py   # Stateless opportunity/invalidation decisions
+```
+
+Synthetic deterministic tests cover entries, exits, all conservative regimes, candidate/persistence disagreement, weak momentum, price/slope/volatility filters, exact threshold boundaries, extreme RSI behavior, already-active theses, one-vs-multiple deterioration dimensions, state/configuration identity, no look-ahead, repeatability, Decimal context/scale behavior, immutability and fresh-process imports without providers/database modules. Current real BTC/ETH classifications are not used to tune parameters.
+
+This is research logic only. It has no empirical profitability evidence, fee-aware optimization, execution timing model, backtest loop, strategy-level extra persistence counter, position sizing, portfolio integration, API, frontend, persistence/migration, TradeIntent, Risk Engine or paper/live execution. Existing Regime Engine persistence is reused as supplied. Subsequent validation must assess timeframe suitability, data quality, costs and sensitivity without hindsight.
+
+## Milestone 9B Part 3 — adversarial validation guarantees
+
+Part 3 adds tests and this evidence-based documentation only. ADAPTIVE_TREND remains v1.0.0 with byte-for-byte unchanged production strategy, configuration, contract and input code. No threshold tuning, new family, profitability evaluation or run against current BTC/ETH strategy observations is performed. Review found no genuine rule contradiction requiring a production fix.
+
+### Adversarial and boundary coverage
+
+The test corpus challenges clean/weak bull and bear structures, flat/range conditions, unestablished breakout, independently conflicting RSI/MACD, inadequate EMA separation/slopes, excessive absolute volatility, baseline-ratio shock, retained candidates, short confirmation streaks, incomplete evidence, continuing directional theses, partial deterioration, multi-dimensional invalidation and confirmed opposite trends. Some tests intentionally supply conflicting analytical snapshots to verify defensive agreement checks; they are not claims about feasible market performance or reconstructed price histories.
+
+Every requested entry/exit threshold is tested at the exact configured Decimal plus the adjacent representable Decimal below and above it in an explicit **50-significant-digit ROUND_HALF_EVEN context**. Decimal numbers have no universal immediate neighbor; the guarantee is relative to that declared precision. Test construction uses enough precision to preserve the neighbors rather than rounding them back onto the threshold.
+
+Results match v1 semantics:
+
+- Entry separation, directional slopes and directional normalized histogram minimum magnitudes are inclusive. The immediately smaller magnitude fails; equality and the immediately larger magnitude pass when other dimensions agree.
+- Both RSI entry endpoints are inclusive. The adjacent value outside each band fails momentum confirmation.
+- ATR, realized-volatility and both baseline-ratio ceilings are inclusive. The adjacent value above each ceiling blocks entry.
+- Exit spread, reversed slopes and reversed histogram minimum magnitudes are inclusive. Each exit test anchors exactly one other deterioration dimension and suppresses the third, proving that crossing the tested boundary changes the decision, not just an internal flag.
+- Exit RSI thresholds are inclusive in their respective directions. Price beyond the fast EMA is strict: equality cannot create an entry.
+- Confirmation streak 2/3 is insufficient, 3/3 passes, and a longer streak remains valid.
+
+Both LONG and SHORT mirrors are exercised. Additional reachability tests demonstrate all five decision types, data-quality failure paths and the confirmed-opposite exit branch with a three-dimension configuration even when only two deterioration dimensions agree. Test-only alternate configurations verify identity/branch behavior; the production defaults are never changed or selected based on outcomes.
+
+### Explicit position-state matrix
+
+For the representative synthetic snapshots used in the matrix:
+
+| Published regime | CASH | LONG thesis | SHORT thesis |
+| --- | --- | --- | --- |
+| BULL_TREND (clean bull) | ENTER_LONG | NO_ACTION | EXIT_SHORT |
+| BEAR_TREND (clean bear) | ENTER_SHORT | EXIT_LONG | NO_ACTION |
+| RANGE (flat) | NO_ACTION | NO_ACTION | NO_ACTION |
+| UNKNOWN (flat/insufficient directional evidence) | NO_ACTION | NO_ACTION | NO_ACTION |
+| BREAKOUT (upward structure + momentum, weak slopes) | NO_ACTION | NO_ACTION | EXIT_SHORT |
+| HIGH_VOLATILITY | NO_ACTION | NO_ACTION | NO_ACTION |
+| UNSAFE | NO_ACTION | NO_ACTION | NO_ACTION |
+
+This is a fixture-specific matrix, not a regime-only rule table. In particular the upward BREAKOUT invalidates SHORT through two independently agreeing deterioration dimensions; the label alone neither enters nor exits. Different valid evidence can change an existing-thesis exit under RANGE/UNKNOWN/BREAKOUT, as Part 2 documents. All 21 combinations have explicit expected outputs; an additional full state × regime × bull/bear/flat evidence cross-product checks allowed-decision invariants.
+
+CASH can produce only ENTER_LONG, ENTER_SHORT or NO_ACTION. LONG can produce only EXIT_LONG or NO_ACTION. SHORT can produce only EXIT_SHORT or NO_ACTION. Caller state is unchanged. No decision simultaneously exits and reverses, and no existing matching thesis receives a duplicate entry.
+
+### Determinism, causality and dependency checks
+
+Tests confirm equal decision identities for repeated inputs, reordered parameter/evidence dictionaries and equivalent Decimal scales across configuration, candles, measurements and regime evidence/configuration. Every configuration field is independently perturbed with a valid test-only value and changes configuration/input/decision identity. Distinct thesis states produce distinct identities even when all decisions are NO_ACTION. Ambient Decimal precision/rounding changes do not alter already-constructed input decisions.
+
+Appending and inspecting future synthetic observations on the same strategy instance cannot rewrite the earlier decision at T. A separate integration test calculates the existing intelligence/regime engines over a prefix and over that same prefix plus extreme future candles: earlier analytical rows and decision identities remain identical. Substituting a later analytical row into the input at T is rejected. These are causality checks, not a backtest: no fills, account state, exposure accounting or returns are generated.
+
+During all named scenario decisions, network/provider entry points and database/session methods are patched to raise if touched. Fresh-process imports load no provider/database/API dependencies. A source AST audit checks for venue literals/imports, order/TradeIntent constructors and execution, sizing, balance/P&L access. The input schema does not accept balance/P&L fields. These tests establish the current trusted implementation's behavior; they do not sandbox arbitrary Python or prove arbitrary future code safe.
+
+### Remaining limitations
+
+Synthetic boundary/adversarial coverage is not a mathematical proof for every possible input, a statistical validation, an execution-safety authorization or evidence of profitability. Static declared snapshots test the strategy's agreement gates; only the separate prefix test derives measurements from synthetic raw candles. Upstream analytical provenance and caller-supplied thesis state remain trusted inputs. Exits use agreement at T rather than a new multi-candle persistence model. Backtesting, cost-adjusted evaluation, parameter sensitivity research, execution and empirical testing remain outside Part 3.
