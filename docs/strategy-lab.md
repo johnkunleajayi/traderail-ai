@@ -1,4 +1,4 @@
-# Strategy Lab foundation — Milestone 9A and 9B Parts 1–3
+# Strategy Lab foundation â€” Milestone 9A and 9B Parts 1â€“3
 
 This is a pure backend research foundation: dataset/experiment specifications, cost assumptions, metric primitives, validation definitions, comparison benchmarks and lifecycle labels. It is not a strategy or backtester. It imports the existing immutable Market Intelligence candle/context types and their pure completed-candle validator. It does not access SQLAlchemy, FastAPI, external providers, clocks, storage or the frontend. Existing intelligence and regime calculations are untouched.
 
@@ -43,25 +43,25 @@ Engine version labels must identify immutable definitions in future research wor
 
 Focused offline tests cover canonical hashes, precision, context/boundary/data changes, immutable snapshots, causal prefixes, validation, configuration identity and timestamp-independent reproducibility.
 
-## Part 2 — immutable research cost assumptions
+## Part 2 â€” immutable research cost assumptions
 
 `ResearchCostModel` requires explicit Decimal `trading_fee_rate`, `spread_rate` and `slippage_rate`; each is a finite fraction in [0, 1]. No real Binance/Quidax fees or exchange defaults are assumed. `execution_delay` is a nonnegative `timedelta` (default zero), retained as an assumption only. It does not shift timestamps, find a future candle, create fills or simulate execution.
 
-`costs_for_notional` accepts a caller-supplied nonnegative Decimal notional for one hypothetical execution leg. Fees = notional × fee rate. Spread is explicitly the **full bid/ask spread fraction**; spread cost = notional × spread rate × 0.5 per leg. Slippage cost = notional × slippage rate. Entry and exit notionals must be supplied separately by a future consumer; nothing infers orders, side, fill price, volume or realized slippage. CostBreakdown preserves fees, spread and slippage separately. All are nonnegative; rebates are outside this model.
+`costs_for_notional` accepts a caller-supplied nonnegative Decimal notional for one hypothetical execution leg. Fees = notional Ã— fee rate. Spread is explicitly the **full bid/ask spread fraction**; spread cost = notional Ã— spread rate Ã— 0.5 per leg. Slippage cost = notional Ã— slippage rate. Entry and exit notionals must be supplied separately by a future consumer; nothing infers orders, side, fill price, volume or realized slippage. CostBreakdown preserves fees, spread and slippage separately. All are nonnegative; rebates are outside this model.
 
-`configuration()` returns a detached mapping, including cost-model version `1.0.0`, spread convention and exact integer delay microseconds. It is compatible with Part 1 configuration snapshots. Part 1 experiment/schema/fingerprinting code is unchanged; costs are not silently injected into existing identities. Part 3’s `create_research_experiment` explicitly binds these cost assumptions, validation and benchmarks into existing configuration snapshots.
+`configuration()` returns a detached mapping, including cost-model version `1.0.0`, spread convention and exact integer delay microseconds. It is compatible with Part 1 configuration snapshots. Part 1 experiment/schema/fingerprinting code is unchanged; costs are not silently injected into existing identities. Part 3â€™s `create_research_experiment` explicitly binds these cost assumptions, validation and benchmarks into existing configuration snapshots.
 
-## Part 2 — metric semantics
+## Part 2 â€” metric semantics
 
-Pure functions in `app.strategy_lab.metrics` accept supplied realized accounting observations/equity/durations/notionals. They do not calculate a strategy, process candles or maintain an execution state. `RealizedTrade` records signed gross P&L and a CostBreakdown; net P&L = gross − fees − spread − slippage. All monetary observations must use one consistent accounting currency. There is no FX conversion or currency inference.
+Pure functions in `app.strategy_lab.metrics` accept supplied realized accounting observations/equity/durations/notionals. They do not calculate a strategy, process candles or maintain an execution state. `RealizedTrade` records signed gross P&L and a CostBreakdown; net P&L = gross âˆ’ fees âˆ’ spread âˆ’ slippage. All monetary observations must use one consistent accounting currency. There is no FX conversion or currency inference.
 
 | Primitive | Exact convention |
 | --- | --- |
-| `total_return(initial, ending_equity)` | (ending equity − initial capital) / initial capital; simple equity return, no deposit/withdrawal adjustment |
+| `total_return(initial, ending_equity)` | (ending equity âˆ’ initial capital) / initial capital; simple equity return, no deposit/withdrawal adjustment |
 | `gross_return(initial, trades)` | Sum realized gross P&L / initial capital |
 | `net_return(initial, trades)` | Sum realized net P&L / initial capital |
 | `realized_pnl_aggregation(trades)` | Separate totals: gross P&L, fees, spread, slippage, net P&L |
-| `drawdown_series(equity)` | At each supplied point: (running peak − equity) / running peak; nonnegative fraction, using only that point and earlier points |
+| `drawdown_series(equity)` | At each supplied point: (running peak âˆ’ equity) / running peak; nonnegative fraction, using only that point and earlier points |
 | `maximum_drawdown(equity)` | Largest defined drawdown in the supplied sequence |
 | `trade_count(trades)` | Number of supplied realized observations, including breakeven outcomes |
 | `win_rate(trades)` | Count strictly positive **net** outcomes / total observations |
@@ -70,11 +70,11 @@ Pure functions in `app.strategy_lab.metrics` accept supplied realized accounting
 | `average_win(trades)` | Mean strictly positive net P&L |
 | `average_loss(trades)` | Mean absolute magnitude of strictly negative net P&L (positive monetary amount) |
 | `expectancy(trades)` | Mean net P&L across all observations, including breakeven; money per trade, not a prediction |
-| `exposure_percentage(exposed, evaluation_duration)` | 100 × exposed duration / evaluation duration; exact microsecond durations, no sample-count assumption |
+| `exposure_percentage(exposed, evaluation_duration)` | 100 Ã— exposed duration / evaluation duration; exact microsecond durations, no sample-count assumption |
 | `turnover(notionals, initial)` | Sum unsigned executed notionals / initial capital; every leg counts, no halving or netting |
 | `total_fees`, `total_spread_cost`, `total_slippage_cost` | Sum the corresponding explicit cost components |
 
-Returns, drawdowns, win/loss rates and turnover are ratios, not percentage points. Only `exposure_percentage` returns 0–100 percentage points. Turnover can exceed 1. Trade statistics use net outcomes so transaction costs can turn a gross win into a net loss. Breakeven observations are neither wins nor losses, but remain in the rate/expectancy denominators. Win rate is not evidence of profitability and is not optimized here.
+Returns, drawdowns, win/loss rates and turnover are ratios, not percentage points. Only `exposure_percentage` returns 0â€“100 percentage points. Turnover can exceed 1. Trade statistics use net outcomes so transaction costs can turn a gross win into a net loss. Breakeven observations are neither wins nor losses, but remain in the rate/expectancy denominators. Win rate is not evidence of profitability and is not optimized here.
 
 ### Undefined and invalid inputs
 
@@ -94,11 +94,11 @@ Metrics operate only on supplied sequences. Equity sequence order must already b
 
 Part 2 primitives do not run strategies, validation or benchmarks. There is no backtesting, TradeIntent, Risk Engine, execution, API, frontend, database write or migration in Milestone 9A. Deterministic tests use hand-verifiable accounting examples and cover undefined denominators, precision, cost conventions, drawdowns and ambient-context independence.
 
-## Part 3 — chronological validation definitions
+## Part 3 â€” chronological validation definitions
 
 `TimeWindow(start, end)` is an immutable UTC-normalized, aware interval with inclusive start and exclusive end. Empty, reversed and naive intervals are invalid. Chronology is compared after UTC conversion, including repeated local-hour offsets. Nothing is shuffled or silently sorted.
 
-`ValidationSplit` pairs an explicit in-sample window with an optional later OOS window. Their intervals cannot overlap. Its `configuration_cutoff` is the exclusive end of the in-sample window: only completed observations before this cutoff are eligible to inform this split’s earlier parameter/configuration selection. OOS data must not inform that earlier selection. The timestamp is a data-availability boundary, not proof that a human selected parameters without hindsight; informational experiment creation time is not such proof either.
+`ValidationSplit` pairs an explicit in-sample window with an optional later OOS window. Their intervals cannot overlap. Its `configuration_cutoff` is the exclusive end of the in-sample window: only completed observations before this cutoff are eligible to inform this splitâ€™s earlier parameter/configuration selection. OOS data must not inform that earlier selection. The timestamp is a data-availability boundary, not proof that a human selected parameters without hindsight; informational experiment creation time is not such proof either.
 
 `ValidationPlan` supports exactly:
 
@@ -106,15 +106,15 @@ Part 2 primitives do not run strategies, validation or benchmarks. There is no b
 | --- | --- | --- |
 | IN_SAMPLE | One in-sample-only window | That in-sample window |
 | OUT_OF_SAMPLE | One in-sample window followed by one OOS window | OOS only |
-| WALK_FORWARD | At least two explicitly supplied in-sample/OOS pairs | Each pair’s OOS window, chronologically |
+| WALK_FORWARD | At least two explicitly supplied in-sample/OOS pairs | Each pairâ€™s OOS window, chronologically |
 
-Walk-forward is deliberately conservative: each complete fold must end at or before the next fold’s in-sample start. No in-sample or OOS candle is reused across folds. Expanding or rolling overlapping training windows are not supported in this version. Forward-only order is required; reverse or overlapping input is rejected rather than reordered. Adjacent half-open windows are valid. Explicit unused intervals are permitted, remain visible in configuration boundaries, and are never silently filled or evaluated. There is no automatic fold generation, optimization or retraining.
+Walk-forward is deliberately conservative: each complete fold must end at or before the next foldâ€™s in-sample start. No in-sample or OOS candle is reused across folds. Expanding or rolling overlapping training windows are not supported in this version. Forward-only order is required; reverse or overlapping input is rejected rather than reordered. Adjacent half-open windows are valid. Explicit unused intervals are permitted, remain visible in configuration boundaries, and are never silently filled or evaluated. There is no automatic fold generation, optimization or retraining.
 
-`validate_for(dataset)` requires all windows to lie within the dataset’s declared evaluation span and use actual candle boundaries. Warm-up is excluded from both split views. `in_sample_candles(dataset, index)` exposes only the declared in-sample rows; `out_of_sample_candles` exposes only the corresponding OOS rows. Changing later OOS candles does not change the earlier in-sample view. No hidden history is fetched or interpolated. Consumers must use the explicitly supplied warm-up/causal history for indicator initialization and must freeze parameter choices using only permitted earlier data. No runner yet enforces arbitrary external consumers’ behavior.
+`validate_for(dataset)` requires all windows to lie within the datasetâ€™s declared evaluation span and use actual candle boundaries. Warm-up is excluded from both split views. `in_sample_candles(dataset, index)` exposes only the declared in-sample rows; `out_of_sample_candles` exposes only the corresponding OOS rows. Changing later OOS candles does not change the earlier in-sample view. No hidden history is fetched or interpolated. Consumers must use the explicitly supplied warm-up/causal history for indicator initialization and must freeze parameter choices using only permitted earlier data. No runner yet enforces arbitrary external consumersâ€™ behavior.
 
 Validation version is `1.0.0`, with explicit `inclusive_start_exclusive_end` and `strictly_disjoint_chronological` conventions. Its deterministic configuration contains all windows, cutoffs and evaluation periods.
 
-## Part 3 — comparison benchmarks
+## Part 3 â€” comparison benchmarks
 
 `BenchmarkKind` has exactly `CASH` and `BUY_AND_HOLD`. Immutable `BenchmarkDefinition` exposes Decimal market exposure:
 
@@ -123,15 +123,15 @@ Validation version is `1.0.0`, with explicit `inclusive_start_exclusive_end` and
 
 `BenchmarkConfiguration` requires an explicit non-empty set of definitions, rejects duplicates, and canonicalizes membership order. Both benchmarks may be selected together. Benchmark version is `1.0.0`.
 
-When bound through `ResearchConfiguration`, benchmark evaluation windows are taken exactly from `ValidationPlan.evaluation_windows`: IN_SAMPLE’s window, the OOS window, or each walk-forward OOS window. They do not accidentally extend into warm-up or the paired training period. Costs are recorded alongside benchmark definitions, but are not applied or simulated. Future comparison execution must use the same period/currency assumptions; no pooled fold results or benchmark equity curves are calculated here.
+When bound through `ResearchConfiguration`, benchmark evaluation windows are taken exactly from `ValidationPlan.evaluation_windows`: IN_SAMPLEâ€™s window, the OOS window, or each walk-forward OOS window. They do not accidentally extend into warm-up or the paired training period. Costs are recorded alongside benchmark definitions, but are not applied or simulated. Future comparison execution must use the same period/currency assumptions; no pooled fold results or benchmark equity curves are calculated here.
 
-## Part 3 — strategy lifecycle labels
+## Part 3 â€” strategy lifecycle labels
 
 `StrategyState` represents exactly `EXPERIMENTAL`, `BACKTESTED`, `VALIDATED`, `PAPER`, `LIVE_CANDIDATE`, `SHADOW`, `LIMITED_LIVE`, `LIVE`, `SUSPENDED`, `RETIRED`.
 
 `StrategyLifecycle` is an immutable record requiring an explicitly supplied enum state. There is no promotion/transition method, scheduler, approval workflow or automatic mutation. Creating experiments or metrics never changes lifecycle state. The labels do not grant execution permission and do not certify evidence of validation. No transition policy or live functionality is implemented.
 
-## Part 3 — research identity integration
+## Part 3 â€” research identity integration
 
 `ResearchConfiguration(validation, benchmarks, cost_model)` holds the three immutable typed definitions. Its detached canonical-compatible mapping records research configuration version `1.0.0`, validation version/policy/windows, benchmark membership/exposure/evaluation windows, and Part 2 cost-model version/rates/spread convention/execution-delay microseconds.
 
@@ -190,7 +190,7 @@ Offline tests cover all three parts, including chronology, overlap/leakage rejec
 
 Remaining work for subsequent milestones includes explicitly scoped strategy definitions, backtest execution/accounting and empirical evaluation/reporting. Metric primitives and validation/benchmark definitions alone do not implement those capabilities. No approved allocation of that work among 9B/9C/9D is assumed here. Actual strategy/Adaptive Trend, parameter optimization, order simulation, TradeIntent, Risk Engine, paper/live execution, APIs, frontend, migrations and ML are absent.
 
-## Milestone 9B Part 1 — pure strategy contract
+## Milestone 9B Part 1 â€” pure strategy contract
 
 A new `backend/app/strategies/` module supplies immutable analytical inputs and decisions plus a reusable protocol. It reuses 9A canonical serialization/configuration snapshots without modifying 9A, Market Intelligence or Regime Engine code. Part 1 supplies the contract only. Part 2 adds the concrete Adaptive Trend family below; no backtest runner or execution behavior exists.
 
@@ -259,7 +259,7 @@ backend/app/strategies/
 
 Focused offline tests cover deep immutability, five decision types, NO_ACTION, configuration identity, malformed/mismatched/incomplete/future inputs, exact timestamps/Decimal values, execution-field rejection, confirmation-streak compatibility, repeated identities and fresh-process imports without providers/database/API modules. Existing 9A tests remain unchanged. Part 1 itself adds no family rules. No API, frontend, migration, persisted decision, profit model, sizing, TradeIntent, Risk Engine or order/paper/live execution is added by either contract or family.
 
-## Milestone 9B Part 2 — ADAPTIVE_TREND v1.0.0
+## Milestone 9B Part 2 â€” ADAPTIVE_TREND v1.0.0
 
 `AdaptiveTrendStrategy` is the first concrete, stateless strategy. It identifies analytical opportunities and directional-thesis invalidation from a single validated StrategyInput. It does not execute, size positions, predict profit or calculate indicators. No parameters were selected/tuned against the current stored BTC/ETH observations. Every initial threshold below is an unvalidated research hypothesis for later empirical evaluation.
 
@@ -276,7 +276,7 @@ All configurable hypotheses reside in immutable `AdaptiveTrendConfiguration`; al
 | Parameter | Default | Convention |
 | --- | --- | --- |
 | minimum_regime_confirmations | 3 | Required streak is max(this, source confirmation_required) |
-| entry_min_ema_spread | 0.0015 | Signed EMA20–EMA50 separation normalized by close |
+| entry_min_ema_spread | 0.0015 | Signed EMA20â€“EMA50 separation normalized by close |
 | entry_fast_slope | 0.0002 | Minimum directional EMA20 slope from regime evidence |
 | entry_slow_slope | 0.0001 | Minimum directional EMA50 slope from regime evidence |
 | long_rsi_min / long_rsi_max | 55 / 70 | Inclusive long-entry RSI band |
@@ -292,17 +292,17 @@ All configurable hypotheses reside in immutable `AdaptiveTrendConfiguration`; al
 | exit_long_rsi / exit_short_rsi | 50 / 50 | Directional deterioration thresholds |
 | exit_min_normalized_histogram | 0.00005 | Minimum reversed normalized histogram magnitude |
 
-Configurations reject non-Decimal, non-finite or non-positive numeric thresholds, invalid RSI bands, non-positive/bool confirmation counts and exit dimension counts outside 2–3. Indicator windows and slope/baseline conventions are inherited from the supplied intelligence/regime output and not recalculated. These defaults are uniform across instruments/timeframes; suitability is not established. Normalized thresholds avoid raw dollar cutoffs. All comparison logic uses Decimal values, with no float conversion or context-dependent financial arithmetic.
+Configurations reject non-Decimal, non-finite or non-positive numeric thresholds, invalid RSI bands, non-positive/bool confirmation counts and exit dimension counts outside 2â€“3. Indicator windows and slope/baseline conventions are inherited from the supplied intelligence/regime output and not recalculated. These defaults are uniform across instruments/timeframes; suitability is not established. Normalized thresholds avoid raw dollar cutoffs. All comparison logic uses Decimal values, with no float conversion or context-dependent financial arithmetic.
 
 ### Deterministic decision precedence
 
 1. Require the matching typed StrategyDefinition and validated StrategyInput.
-2. UNSAFE → NO_ACTION / DATA_UNSAFE. HIGH_VOLATILITY → NO_ACTION / HIGH_VOLATILITY_REGIME. Both gates apply in all thesis states. Operational risk liquidation is not this strategy's responsibility.
-3. From CASH, RANGE/UNKNOWN/BREAKOUT → NO_ACTION / REGIME_NOT_TRENDING. BREAKOUT alone never creates an entry.
+2. UNSAFE â†’ NO_ACTION / DATA_UNSAFE. HIGH_VOLATILITY â†’ NO_ACTION / HIGH_VOLATILITY_REGIME. Both gates apply in all thesis states. Operational risk liquidation is not this strategy's responsibility.
+3. From CASH, RANGE/UNKNOWN/BREAKOUT â†’ NO_ACTION / REGIME_NOT_TRENDING. BREAKOUT alone never creates an entry.
 4. Require existing normalized spread, fast/slow slopes, normalized MACD histogram, normalized ATR, volatility ratio and ATR ratio. Missing values produce ANALYTICAL_EVIDENCE_INCOMPLETE; negative ATR/relative volatility ratios produce ANALYTICAL_EVIDENCE_INVALID. No fallback values are invented.
-5. CASH → evaluate entry agreement; LONG/SHORT → evaluate only existing-thesis invalidation. An exit cannot return a simultaneous opposite entry.
+5. CASH â†’ evaluate entry agreement; LONG/SHORT â†’ evaluate only existing-thesis invalidation. An exit cannot return a simultaneous opposite entry.
 
-### Entry rules — all six dimensions required
+### Entry rules â€” all six dimensions required
 
 A directional regime is confirmed only when the published regime and candidate both equal the required BULL_TREND/BEAR_TREND, `retained_previous` is false, source confirmation_required is positive, confirmation_count meets both source and strategy requirements, and available_candles meets the positive candidate_history_required. A retained old regime, conflicting candidate or pending confirmation cannot create an entry.
 
@@ -319,7 +319,7 @@ ENTER_SHORT is symmetric: confirmed BEAR_TREND; EMA20 < EMA50 with spread <= -0.
 
 RSI above 70 is not an automatic long entry; RSI below 30 is not an automatic short entry. Under default bands both instead fail entry momentum confirmation. A matching existing LONG/SHORT never receives a duplicate entry. SHORT descriptions are not blocked by Quidax spot capability: this is a venue-neutral analytical decision, not permission to short live.
 
-### Exit rules — trend invalidation, not profit taking
+### Exit rules â€” trend invalidation, not profit taking
 
 For an existing LONG, return EXIT_LONG if either a fully confirmed BEAR_TREND exists, or at least two (configurable to three) of these dimensions agree:
 
@@ -354,7 +354,7 @@ Synthetic deterministic tests cover entries, exits, all conservative regimes, ca
 
 This is research logic only. It has no empirical profitability evidence, fee-aware optimization, execution timing model, backtest loop, strategy-level extra persistence counter, position sizing, portfolio integration, API, frontend, persistence/migration, TradeIntent, Risk Engine or paper/live execution. Existing Regime Engine persistence is reused as supplied. Subsequent validation must assess timeframe suitability, data quality, costs and sensitivity without hindsight.
 
-## Milestone 9B Part 3 — adversarial validation guarantees
+## Milestone 9B Part 3 â€” adversarial validation guarantees
 
 Part 3 adds tests and this evidence-based documentation only. ADAPTIVE_TREND remains v1.0.0 with byte-for-byte unchanged production strategy, configuration, contract and input code. No threshold tuning, new family, profitability evaluation or run against current BTC/ETH strategy observations is performed. Review found no genuine rule contradiction requiring a production fix.
 
@@ -389,7 +389,7 @@ For the representative synthetic snapshots used in the matrix:
 | HIGH_VOLATILITY | NO_ACTION | NO_ACTION | NO_ACTION |
 | UNSAFE | NO_ACTION | NO_ACTION | NO_ACTION |
 
-This is a fixture-specific matrix, not a regime-only rule table. In particular the upward BREAKOUT invalidates SHORT through two independently agreeing deterioration dimensions; the label alone neither enters nor exits. Different valid evidence can change an existing-thesis exit under RANGE/UNKNOWN/BREAKOUT, as Part 2 documents. All 21 combinations have explicit expected outputs; an additional full state × regime × bull/bear/flat evidence cross-product checks allowed-decision invariants.
+This is a fixture-specific matrix, not a regime-only rule table. In particular the upward BREAKOUT invalidates SHORT through two independently agreeing deterioration dimensions; the label alone neither enters nor exits. Different valid evidence can change an existing-thesis exit under RANGE/UNKNOWN/BREAKOUT, as Part 2 documents. All 21 combinations have explicit expected outputs; an additional full state Ã— regime Ã— bull/bear/flat evidence cross-product checks allowed-decision invariants.
 
 CASH can produce only ENTER_LONG, ENTER_SHORT or NO_ACTION. LONG can produce only EXIT_LONG or NO_ACTION. SHORT can produce only EXIT_SHORT or NO_ACTION. Caller state is unchanged. No decision simultaneously exits and reverses, and no existing matching thesis receives a duplicate entry.
 
@@ -406,7 +406,7 @@ During all named scenario decisions, network/provider entry points and database/
 Synthetic boundary/adversarial coverage is not a mathematical proof for every possible input, a statistical validation, an execution-safety authorization or evidence of profitability. Static declared snapshots test the strategy's agreement gates; only the separate prefix test derives measurements from synthetic raw candles. Upstream analytical provenance and caller-supplied thesis state remain trusted inputs. Exits use agreement at T rather than a new multi-candle persistence model. Backtesting, cost-adjusted evaluation, parameter sensitivity research, execution and empirical testing remain outside Part 3.
 
 
-## Milestone 9C Part 1 — causal replay foundation v1.0.0
+## Milestone 9C Part 1 â€” causal replay foundation v1.0.0
 
 `app.strategy_lab.replay.replay_dataset(dataset, strategy, *, as_of, initial_state=CASH,
 regime_configuration=REGIME_CONFIG)` is a pure synchronous research operation. It accepts an
@@ -507,7 +507,7 @@ and dictionary order do not alter numeric/configuration identity. No binary floa
 
 Synthetic tests verify causal prefix arguments at both engines and the shared strategy contract,
 actual Adaptive Trend reuse, exact frozen/prefix provenance, warm-up exclusion/pending confirmation,
-all 15 state × decision transitions, deterministic replay, future append/price-change invariance,
+all 15 state Ã— decision transitions, deterministic replay, future append/price-change invariance,
 input immutability, configuration/state identity changes, supported timeframes, small Decimal prices,
 archival retrieval semantics, malformed/tampered snapshots and fresh-process dependency isolation.
 
@@ -517,7 +517,7 @@ persistence or migrations. This stage proves causal decision replay, not profita
 realism. Later 9C/9D work must make those assumptions explicit rather than infer them from thesis states.
 
 
-## Milestone 9C Part 2 — deterministic historical execution simulation v1.0.0
+## Milestone 9C Part 2 â€” deterministic historical execution simulation v1.0.0
 
 `app.strategy_lab.execution.simulate_execution(dataset, replay, *, quantity, cost_model, as_of)`
 consumes the frozen research snapshot and its existing causal replay. It creates immutable
@@ -556,15 +556,15 @@ full bid/ask spread fraction, l the slippage fraction and f the trading fee frac
 The existing cost model convention is retained: each action pays half the declared full spread.
 Rates are caller-declared research assumptions, never hard-coded Binance/Quidax fees.
 
-- Per-unit spread magnitude: `a = P × s × 0.5`
-- Per-unit slippage magnitude: `b = P × l`
+- Per-unit spread magnitude: `a = P Ã— s Ã— 0.5`
+- Per-unit slippage magnitude: `b = P Ã— l`
 - ENTER_LONG or EXIT_SHORT: `fill_price = P + a + b`
-- ENTER_SHORT or EXIT_LONG: `fill_price = P − a − b`
-- Reference notional: `q × P`
-- Adjusted fill notional: `q × fill_price`
-- Spread cost: `q × a`
-- Slippage cost: `q × b`
-- Separate trading fee: `(q × fill_price) × f`, in quote currency
+- ENTER_SHORT or EXIT_LONG: `fill_price = P âˆ’ a âˆ’ b`
+- Reference notional: `q Ã— P`
+- Adjusted fill notional: `q Ã— fill_price`
+- Spread cost: `q Ã— a`
+- Slippage cost: `q Ã— b`
+- Separate trading fee: `(q Ã— fill_price) Ã— f`, in quote currency
 
 Spread and slippage are additive adjustments against the same reference P, not sequentially
 compounded. Their signed per-unit adjustments and positive quote-currency costs are retained.
@@ -633,7 +633,7 @@ optimization, walk-forward evaluation, Risk Engine, TradeIntent, venue orders, p
 API, frontend, persistence, migrations or dependency additions are introduced.
 
 
-## Milestone 9C Part 3 — deterministic accounting v1.0.0
+## Milestone 9C Part 3 â€” deterministic accounting v1.0.0
 
 `app.strategy_lab.accounting.account_simulation(dataset, replay, execution, *, initial_capital, as_of)`
 accounts for an existing frozen Part 2 simulation. It starts in CASH and requires caller-supplied
@@ -664,11 +664,11 @@ through the next exit open or evaluation end, avoiding a spurious one-millisecon
 For quantity q, entry/exit reference opens R_e/R_x, adjusted simulated fill prices F_e/F_x,
 and separately recorded fees:
 
-- LONG gross movement: `(R_x − R_e) × q`
-- SHORT gross movement: `(R_e − R_x) × q`
-- LONG net outcome from fills: `(F_x − F_e) × q − entry_fee − exit_fee`
-- SHORT net outcome from fills: `(F_e − F_x) × q − entry_fee − exit_fee`
-- Both directions: `gross movement − total spread cost − total slippage cost − total fees = net outcome`
+- LONG gross movement: `(R_x âˆ’ R_e) Ã— q`
+- SHORT gross movement: `(R_e âˆ’ R_x) Ã— q`
+- LONG net outcome from fills: `(F_x âˆ’ F_e) Ã— q âˆ’ entry_fee âˆ’ exit_fee`
+- SHORT net outcome from fills: `(F_e âˆ’ F_x) Ã— q âˆ’ entry_fee âˆ’ exit_fee`
+- Both directions: `gross movement âˆ’ total spread cost âˆ’ total slippage cost âˆ’ total fees = net outcome`
 
 Every matched trade enforces this equality **exactly**, using existing exact Decimal arithmetic,
 not a floating tolerance. `metrics.RealizedTrade` supplies the existing gross-minus-costs definition.
@@ -682,16 +682,16 @@ fills, timestamps, reference/adjusted prices, gross/cost/net decomposition and r
 
 Cash is **free spendable quote cash**, not total equity. A funded long entry subtracts adjusted entry
 notional plus its fee; an exit adds adjusted exit proceeds minus its fee. Long equity is
-`cash + q × current completed close`.
+`cash + q Ã— current completed close`.
 
 Fees are realized expenses at the fill that incurs them, including an entry whose position remains
 open. Let C be completed-trade net P&L (including all costs on those closed trades), and f_open the
 entry fee of the single remaining open position, or zero:
 
-- Ledger realized P&L: `C − f_open`
-- Realized capital: `initial_capital + C − f_open`
-- Open LONG unrealized P&L: `(mark_close − entry_fill_price) × q`
-- Open SHORT unrealized P&L: `(entry_fill_price − mark_close) × q`
+- Ledger realized P&L: `C âˆ’ f_open`
+- Realized capital: `initial_capital + C âˆ’ f_open`
+- Open LONG unrealized P&L: `(mark_close âˆ’ entry_fill_price) Ã— q`
+- Open SHORT unrealized P&L: `(entry_fill_price âˆ’ mark_close) Ã— q`
 - Total equity: `realized_capital + unrealized_pnl`
 
 Open spread/slippage remain embedded in the entry fill basis and therefore in unrealized P&L.
@@ -716,9 +716,9 @@ For research SHORT only, v1 reserves **100% of the entry reference notional from
 capital**, pays the entry fee from free cash, and segregates adjusted sale proceeds. Short proceeds
 cannot fund another action and are never reported as spendable cash. While open:
 
-`short_equity = free_cash + reserved_own_capital + restricted_sale_proceeds − q × mark_close`
+`short_equity = free_cash + reserved_own_capital + restricted_sale_proceeds âˆ’ q Ã— mark_close`
 
-The ledger enforces `q × price <= total_equity` at entry's reference open and every completed close
+The ledger enforces `q Ã— price <= total_equity` at entry's reference open and every completed close
 while SHORT, imposing a conservative one-times-equity exposure ceiling. Insufficient entry funding,
 negative settlement cash, or an open short exceeding that ceiling rejects the experiment. At an exit,
 reserved capital and restricted proceeds are released only to settle actual cover notional and fee;
@@ -789,11 +789,11 @@ real/paper/venue orders, exchange accounts, API, frontend, persistence, migratio
 
 ## Final integrated Milestone 9C audit
 
-`tests/test_integrated_9c_audit.py` exercises the complete frozen-dataset → causal Intelligence →
-Regime Engine → **unchanged default ADAPTIVE_TREND v1.0.0** → StrategyDecision → replay thesis →
-next-open simulated fills/costs → accounting/equity → shared 9A metrics pipeline. No scripted
+`tests/test_integrated_9c_audit.py` exercises the complete frozen-dataset â†’ causal Intelligence â†’
+Regime Engine â†’ **unchanged default ADAPTIVE_TREND v1.0.0** â†’ StrategyDecision â†’ replay thesis â†’
+next-open simulated fills/costs â†’ accounting/equity â†’ shared 9A metrics pipeline. No scripted
 strategy decisions, fabricated analytical rows or adjusted strategy/regime thresholds are used.
-Synthetic prices use repeating +1/+1/−1 drift/pullbacks and their downward mirror, then explicit
+Synthetic prices use repeating +1/+1/âˆ’1 drift/pullbacks and their downward mirror, then explicit
 trend reversals. The frozen datasets declare 128 warm-up candles, with evaluation starting before
 the first strategy entry. All prices, history boundaries and cost assumptions are synthetic test inputs.
 
@@ -860,7 +860,7 @@ produce identical decisions, fills, trades, curve, metrics and final result iden
 fee/delay/quantity/capital changes alter the appropriate execution/accounting identities while leaving
 canonical strategy decisions unchanged. No strategy threshold is changed to obtain these outcomes.
 
-No financial defect requiring production changes was identified by this audit. Parts 1–3 and the
+No financial defect requiring production changes was identified by this audit. Parts 1â€“3 and the
 strategy/analytical/metric implementations remain byte-for-byte unchanged; only audit tests and this
 evidence documentation are added. Existing limitations remain: retrospective archival provenance,
 fixed thesis replay rather than pending-fill-aware strategy reevaluation, simplified next-open and
@@ -892,3 +892,126 @@ The investigation found a legitimate 23-candle refresh through the normal ingest
 Backend pytest installs a fail-closed connection guard before test-module collection. It replaces inherited database settings with a non-application sentinel and blocks physical SQLAlchemy and psycopg connections, including explicit URLs. Existing explicitly injected mocked sessions/dependency overrides remain supported. Python subprocess tests inherit a test-only bootstrap that blocks physical network connections without importing application/database modules. Real database integration tests are not enabled: a test database name or local host alone is insufficient proof of isolation. A future real integration harness would need separately verified disposable database isolation.
 
 This guard applies only to pytest and its ordinary inherited Python subprocesses; production runtime, operational helpers and manual verification commands are unchanged. It is an accidental-access safeguard, not a sandbox against code deliberately removing the guard or launching Python with environment/site initialization disabled. Read-only operational fingerprint verification remains separate from pytest.
+
+
+## Milestone 9D Part 1 â€” paired out-of-sample validation
+
+`app.strategy_lab.out_of_sample` composes the existing immutable 9A dataset/windows and unchanged 9C replay, historical execution and accounting engines. Version 1.0.0 is research validation only: no training, optimization, parameter selection, scoring verdict or strategy promotion.
+
+### Explicit plan and period boundaries
+
+`OutOfSamplePlan` freezes the complete dataset, strategy definition/configuration, historical execution/cost configuration, supported accounting configuration, caller-supplied positive Decimal quantity and initial capital. The declared starting state is CASH. A shared 9A `ValidationSplit` identifies IS and OOS, and the paired `ValidationPlan` validates candle boundaries. V1 requires an exact contiguous partition: warm-up starts at the dataset's first candle and ends at IS start; IS ends at OOS start; OOS ends at the dataset's exclusive end. Intervals are inclusive-start/exclusive-end, so the first OOS observation occurs strictly after the final IS observation even though adjacent windows share an exclusive boundary. Gaps, overlaps, reversed windows, omitted/trailing history, insufficient warm-up and forged dataset fingerprints are rejected. V1 intentionally does not support separated windows with unused intervening periods.
+
+### Independent state and causal execution
+
+IS runs on a snapshot truncated at IS end. OOS runs on a snapshot from the same explicit warm-up start through OOS end, with evaluation beginning only at OOS start. The plan explicitly declares this larger OOS analytical-context window: warm-up and IS initialize indicators/regimes, but generate no OOS strategy decisions, fills, equity observations or metrics. No older history is fetched. Both periods use the same frozen strategy/configuration and a fresh implementation supplied by a factory. Both instances are constructed and checked against the plan before either run; the factory receives no data/results. The strategy contract still requires deterministic pure implementations.
+
+Each period starts independently in CASH with the full declared initial capital, not the previous period's ending equity. IS positions and pending decisions never carry into OOS. Open IS positions are retained in the IS result and marked using existing accounting rules, without fabricated liquidation. An IS final-candle decision remains unfilled even if its eligible timestamp exists in OOS. Open OOS positions likewise remain explicit. The existing unleveraged capital checks, short research-collateral convention, costs, next-open timing and delay are unchanged. Only accounting conventions already supported by the unchanged v1 engine are accepted; an alternative configuration is rejected rather than silently ignored.
+
+### Results, comparison and reproducibility
+
+`OutOfSampleResult` retains the complete immutable plan, separate IS/OOS `ResearchResult` artifacts, a tuple of descriptive `MetricComparison` rows and a deterministic validation identity. Metrics are never pooled. Comparisons report OOS minus IS for total/net return, maximum drawdown, trade count, win rate, profit factor, expectancy, exposure, turnover and each fee/spread/slippage total. Undefined inputs produce an undefined (`None`) delta; no missing value becomes zero. Financial differences use existing exact Decimal arithmetic. Changes are descriptive, not evidence of profitability or a PASS/FAIL decision.
+
+The plan identity uses the existing typed canonical serialization plus namespaced SHA-256 over the frozen dataset identity, windows, explicitly declared OOS context, state convention, strategy/configuration identity, execution/cost/accounting assumptions, quantity/capital and Intelligence/Regime configurations. The validation identity binds this plan identity to both complete backtest identities and the comparison. No wall-clock inspection timestamp participates. Dictionary ordering and equivalent Decimal representations cannot change identity. Full-run identity changes when future data changes, while earlier causal replay/fill/equity artifacts retain their prefix identities.
+
+### Guarantees and limitations
+
+Tests exercise unchanged Adaptive Trend and test-only causal contract fixtures using real Intelligence/Regime/replay/execution/accounting. They challenge OOS-to-IS leakage, later/appended OOS data, boundary positions/unfilled decisions, explicit warm-up exclusion, separate performance, fixed configurations, deterministic identities, costs, unaffordable quantity and invalid windows. This foundation does not establish statistical generalization, account for selection bias, compare benchmarks, optimize parameters, perform walk-forward evaluation or promote a strategy. A caller must provide a genuinely deterministic factory; arbitrary user code is not sandboxed. Computation retains the existing transparent prefix replay cost. There is no API, persistence, scheduling or provider access.
+
+
+## Milestone 9D Part 2 â€” walk-forward evidence and parameter sensitivity
+
+### Disjoint independent folds
+
+`app.strategy_lab.walk_forward` version 1.0.0 binds a frozen parent dataset to an explicit chronological tuple of Part 1 `OutOfSamplePlan` folds. Every fold therefore declares its exact analytical warm-up, historical/IS context, OOS window, strategy/configuration, execution/cost/accounting assumptions, quantity, capital and CASH start. Fold candles must exactly match their parent slice. V1 conservatively forbids overlap of entire fold histories, including warm-up, not just OOS; expanding/reused training windows are not supported. Folds are never sorted to repair an invalid plan. A single fold is supported through the existing paired 9A definition; multiple folds reuse 9A's strict walk-forward definition. Unselected parent intervals, if any, are explicit unused data and never added to a fold's history.
+
+The unchanged Part 1 engine evaluates each fold independently, and all folds must use the same strategy definition and research assumptions. Each IS/OOS period receives a fresh strategy instance; no position, pending decision, capital or mutable strategy instance carries across folds. Each result retains its own Part 1 plan, IS/OOS backtests, dataset/window/configuration identities, metrics, costs, completed trades and open positions. No fold equity curves are stitched into a continuous investment portfolio.
+
+### Descriptive OOS summary
+
+`WalkForwardSummary` uses only OOS performance from each fold: fold count; positive/negative/zero/undefined completed net-return counts; equal-fold mean/median net return; minimum/maximum net return; median/largest drawdown; total completed trades; zero-trade fold count; mean expectancy and profit factor over defined folds; and separately summed incurred fees, spread and slippage costs. Defined-observation counts accompany nullable statistics. If no values exist the statistic is `None`, never zero. Even-sized medians average their two central values. Sums, differences and division use existing deterministic Decimal helpers (50-digit division convention).
+
+`return_sign_consistency` describes only defined net-return signs: POSITIVE, NEGATIVE, ZERO, MIXED, or `None` if none are defined. Undefined-return fold counts remain explicit. Fold sign uses existing completed-trade net return, not unrealized mark-to-market gain; open positions remain visible separately. These are descriptive equal-fold statistics, not compounded/time-weighted returns, significance tests, risk-adjusted rankings or a validation verdict. Unequal fold durations are not silently normalized.
+
+### Caller-declared Adaptive Trend sensitivity
+
+`app.strategy_lab.sensitivity` version 1.0.0 accepts a paired OOS or walk-forward plan, an explicit typed Adaptive Trend baseline, and a finite caller-supplied sequence of configurations that must include that baseline exactly once. The baseline must match the strategy/configuration already frozen in the validation plan. Duplicate/equivalent configurations are rejected, including numerically equivalent Decimal representations. Configurations are canonically ordered by configuration identity, never by returns. The baseline is evaluated once and retained as the baseline regardless of outcomes; every supplied distinct alternative is retained.
+
+OFAT defaults to enabled and requires each alternative to change exactly one meaningful configuration field. Comparison uses numerical Decimal equality, so trailing-zero representation changes do not count. Explicit non-OFAT mode permits caller-declared multiple-field alternatives; it does not generate combinations. Nearby variants and their scientific justification are the caller's responsibility; this infrastructure does not prescribe profitable perturbations or enforce a universal distance between heterogeneous parameters.
+
+Each alternative uses an immutable replacement of only the strategy definition, with the exact same datasets, fold/window boundaries, analytical context, starting state, execution/cost/accounting assumptions, quantity and initial capital. Existing Adaptive Trend, analytics, replay, execution, accounting and comparison functions remain unchanged. Results retain the exact immutable configuration, configuration identity, changed-field names, full validation/backtest identities, OOS metrics and per-fold metric deltas from baseline. Comparison rows expose `baseline`, `variant` and `variant_minus_baseline`, wrapping existing comparison arithmetic without repurposing IS/OOS field labels. Return-sign change is explicit (`None` when undefined); deltas include net return, drawdown, trade count, expectancy, exposure, turnover and each cost total. No configuration is selected, ranked, promoted or written back to production defaults.
+
+### Identities, causal guarantees and limitations
+
+Walk-forward plan identity binds the parent dataset and ordered fold plan identities; a fold identity binds only its own index/plan/result, preserving earlier fold results when future data changes. Walk-forward result identity additionally binds descriptive summary evidence. Sensitivity plan identity binds the original validation plan, explicit baseline, canonical configuration identities and OFAT mode; result identity binds all validation results and differences. Existing typed canonical serialization and namespaced SHA-256 are reused; inspection timestamps and input configuration ordering do not determine identity.
+
+Tests cover independent open/unfilled states, losing and zero-trade folds, literal summary arithmetic and nonfinite/undefined conventions inherited from shared arithmetic, future-fold isolation, repeated execution, equivalent decimals, explicit perturbations, OFAT rejection, default file immutability and absence of automatic selection. This remains frozen historical research, without optimization, walk-forward training/refitting, automatic fold creation, benchmark scoring, cost stress testing, final verdicts, API, persistence or execution authority. The deterministic strategy contract and non-sandboxed factory limitation from Part 1 still apply.
+
+
+## 9D Part 3 — Passive benchmarks and execution stress evidence
+
+`benchmark_evaluation` executes the existing 9A CASH and BUY_AND_HOLD definitions against completed OOS validation results (paired or independent walk-forward folds). It binds the original frozen dataset/context, exact OOS window, quote currency and initial capital; mismatched research data, window, capital, strategy, accounting or execution assumptions are rejected. It uses the shared 9C adverse pricing helper and unchanged 9A return/drawdown/exposure/turnover primitives. There is no benchmark strategy, order, forced liquidation, optimizer or performance verdict.
+
+CASH retains initial capital at every OOS close: zero costs, exposure, turnover, return and drawdown. BUY_AND_HOLD is a passive allocation declared before the evaluation window. Its reference is the first OOS candle OPEN, plus the explicitly declared whole-candle delay (zero means that first open, unlike a strategy decision which becomes eligible only at the next open). It uses no first-candle close information to choose the allocation. All candles must be completed at the archival evaluation cutoff. Insufficient history for the declared entry delay is an explicit error.
+
+The passive entry applies adverse half of the full spread plus slippage to the reference open, and fees separately on adjusted notional, using the existing pricing function. Quantity = initial capital / (adjusted unit price + unit entry fee), with an explicit 50-significant-digit Decimal ROUND_DOWN allocation convention. Residual cash is preserved; rounding cannot borrow capital. No caller strategy quantity is resized: this benchmark has a separately documented fee-inclusive full-budget allocation, whereas Adaptive Trend retains caller-supplied fixed quantity. This exposure difference is retained, not hidden. Entry costs occur once; equity is residual cash + quantity × each causally available completed OOS close. The last close marks the still-open passive holding; no exit price, exit costs or realized trade is fabricated. Exposure is elapsed time from entry open through window end, divided by the evaluation duration. Turnover counts entry adjusted notional only. Drawdown includes initial capital and completed-close marks; it is not intrabar drawdown.
+
+Immutable benchmark results retain context/window identities, execution assumptions, entry reference/adjusted prices, quantity, residual cash, costs, timestamped close/equity observations and version 1.0.0. Comparisons expose strategy-minus-benchmark total return, maximum drawdown, exposure, turnover and total costs. Strategy turnover and realized-trade returns are not equated to passive full-period exposure: comparisons use total equity return, including open-position marks. Folds stay separate.
+
+`stress_testing` accepts immutable caller-supplied scenarios varying only the existing fee/full-spread/slippage/duration cost model. An explicit uniquely named BASELINE must equal the frozen validation costs. Whole-candle delays are validated before any execution. Scenario codes, cost identities and the original plan bind deterministic identities; results are ordered by code, never profitability. Strategy, data, windows, quantity, initial capital and accounting remain fixed. The unchanged OOS/walk-forward → replay → execution → accounting pipeline runs every scenario with fresh unchanged Adaptive Trend instances. No production default is replaced.
+
+Per-scenario results retain the complete validation artifacts (trades, fills, unfilled decisions, open positions, equity), OOS metrics per fold, exact assumptions, and descriptive differences from BASELINE: net return, drawdown, trade count, expectancy and other existing comparison metrics, total costs and net-return sign changes. Undefined metrics remain None. No scenarios are selected, ranked or promoted. Insufficient capital or any other invalid execution fails explicitly with the existing pipeline error; the caller must correct/redeclare its experiment. There is no automatic resizing, partial success disguised as a valid result or negative-cash workaround.
+
+Tests use synthetic frozen candles and independent literal accounting oracles, including higher fees, wider spread, higher slippage, one additional candle delay and combined adverse assumptions. These are research inputs, not Binance/Quidax fee claims. Costs reconcile both through adverse fills minus fees and gross movement minus explicit costs. Existing causal next-open execution, final unfilled decisions, independent fold boundaries and open-position treatment are unchanged. Sensitivity, OOS validation, walk-forward validation and Adaptive Trend defaults remain unchanged.
+
+Limitations: no benchmark scoring/final verdict, exit liquidation, intrabar liquidity/impact, venue minimum lot constraints, optimization, automatic promotion or real execution. The fee-inclusive passive allocation has explicit finite Decimal precision and may retain tiny cash dust. Extremely adverse scenarios can be unaffordable and intentionally abort. Close-mark drawdowns and deterministic cost assumptions are research evidence, not venue execution guarantees.
+
+
+## 9D Part 4 — Validation evidence and research verdict
+
+`validation_evidence` consumes existing immutable IS/OOS, walk-forward, sensitivity, benchmark and stress artifacts. It does not execute a strategy, rerun analytics/replay/accounting, call a provider, fetch history or write data. Frozen candle snapshots are revalidated for provenance, not recalculated into new research results. Source bindings reject foreign datasets, windows, canonical contexts, quantities, capital, strategy definitions, cost/accounting assumptions, duplicate evidence and inconsistent metric projections. Sensitivity may change only its declared strategy configuration; stress may change only declared execution assumptions. Baselines must anchor to the exact supplied IS/OOS or walk-forward validation.
+
+The only verdicts are INSUFFICIENT_EVIDENCE, FAILED_VALIDATION and VALIDATION_CANDIDATE. Evaluation precedence is exact: any mandatory coverage/undefined-required-measurement insufficiency yields INSUFFICIENT_EVIDENCE; otherwise any mandatory quality criterion FAIL yields FAILED_VALIDATION; otherwise VALIDATION_CANDIDATE. A candidate means only: "The available historical research evidence is sufficient to justify consideration for the next controlled validation stage." It does not authorize another lifecycle stage or execution. Observed failures remain visible even when insufficiency takes precedence. Strong return cannot cancel a failed or insufficient criterion. There is no combined numeric score.
+
+Every criterion records code, category, observed value, declared requirement, status, deterministic reason and readable explanation. Status is SUFFICIENT/INSUFFICIENT for coverage, PASS/FAIL for mandatory quality and NOT_APPLICABLE for informational/non-required criteria. Undefined mandatory metrics are insufficient, never fabricated zero. Categories remain separate: EVIDENCE_COVERAGE, RETURN_QUALITY, DRAWDOWN_CONTROL, WALK_FORWARD_CONSISTENCY, PARAMETER_STABILITY, COST_RESILIENCE and BENCHMARK_CONTEXT. Reports retain all criteria; `passed_criteria` contains quality PASS codes (coverage remains explicitly SUFFICIENT).
+
+### Default development research-policy hypotheses (version 1.0.0)
+
+Every value below is a centralized immutable hypothesis requiring empirical review, not tuned to the accepted stored dataset and not a claim about future results:
+
+| Policy field | Default |
+| --- | --- |
+| minimum_oos_completed_trades | 30 |
+| minimum_walk_forward_folds / minimum_active_folds | 3 / 3 |
+| minimum_non_losing_fold_proportion | 0.67 of ACTIVE folds |
+| maximum_oos_drawdown / maximum_worst_fold_drawdown | 0.20 / 0.25 |
+| minimum_oos_expectancy | 0 quote-currency units per completed trade |
+| minimum_oos_profit_factor | 1.10 |
+| minimum_stress_scenarios | 4, including BASELINE and explicitly recorded failed attempts |
+| maximum_stress_return_degradation | 0.03 absolute return fraction |
+| allow_stress_return_sign_flip | false |
+| minimum_stress_completed_trades / minimum_stress_trade_retention | 10 / 0.50 |
+| require_sensitivity_stability / minimum_sensitivity_variants | true / 2, excluding baseline |
+| maximum_sensitivity_return_degradation | 0.02 absolute return fraction |
+| allow_sensitivity_return_sign_flip | false |
+| minimum_variant_completed_trades / minimum_variant_trade_retention | 10 / 0.50 |
+| require_cash_comparison / require_buy_and_hold_comparison | true / true |
+| cash_treatment / buy_and_hold_treatment | INFORMATIONAL / INFORMATIONAL |
+| minimum_benchmark_excess_return | 0, only gates when treatment is MANDATORY |
+| benchmark_scope / fold_consistency_basis | PRIMARY_OOS / ACTIVE_FOLDS |
+
+Minimum/maximum comparisons are inclusive. Return degradation is max(0, baseline net return minus alternative net return), not a percentage of baseline. Return-sign change means any transition among negative/zero/positive; an explicit boolean policy can permit it. Trade retention is alternative completed trades / baseline completed trades. Proportions and drawdowns are fractional (not percentages). Expectancy retains the existing absolute quote-currency convention and therefore depends on declared research quantity; policies must be reviewed for those units. Default 0.67 is exactly 67%, not a rounded claim that two of three folds suffice.
+
+Walk-forward evidence is per independent OOS fold. Non-losing consistency counts active folds (completed trades > 0), preventing inactive zero-return folds from inflating consistency; minimum active/fold counts and metric coverage are separate checks. Worst-fold drawdown uses every provided fold, not a mean. Missing declared folds remain insufficient. No equity curves are stitched or new performance metrics calculated.
+
+Sensitivity checks every provided variant/fold against its original baseline. Required variant count and per-variant trade count are coverage criteria; loss of activity below the declared retention ratio, return-sign changes and excessive degradation are quality failures. No favorable variant can average away an adverse one. Declared but missing variants are insufficient. Setting require_sensitivity_stability=false makes these checks explicitly informational, while preserving source identities and observed per-variant criteria.
+
+Cost resilience likewise evaluates all declared scenarios/folds against BASELINE: sufficient scenario count, complete declared coverage, completed baseline evidence, per-scenario trade coverage, retained activity, sign stability and maximum degradation. Part 3 still raises on unaffordable execution. Part 4's immutable `StressEvidence` adapter accepts an existing StressResult or a caller-recorded set of completed ScenarioResults and explicit `StressFailure(UNAFFORDABLE_EXECUTION)` records with failure-source identities. It never catches/retries execution or invents missing metrics. Failed attempts count as attempted scenario coverage and produce FAIL for cost resilience. Missing attempts/results remain insufficient. Failure records must name a declared non-baseline scenario; contradictory/duplicate or failed-baseline evidence is rejected. A missing baseline result is insufficient (the unchanged supplied validation still anchors comparisons). Recording failures requires a trustworthy caller/audit artifact; this layer does not authenticate exception logs.
+
+CASH and BUY_AND_HOLD are required context by default only for the primary OOS window; optional supplied fold comparisons remain retained and bound to their exact evaluations. Underperformance is informational unless that benchmark's policy treatment explicitly becomes MANDATORY. Mandatory treatment requires strategy-minus-benchmark TOTAL equity return >= minimum_benchmark_excess_return; other return/drawdown/exposure/turnover/cost comparison fields remain context, not hidden targets. Missing required comparisons or required undefined return differences are insufficient. No assumption that Adaptive Trend must beat passive exposure is embedded in logic.
+
+Reports retain strategy family/version/configuration identity, dataset identity, complete declared policy/version/identity, source identities (including IS and OOS backtests, folds, alternative validations, scenario results/failures and benchmarks), canonical evidence identity, verdict, criteria, insufficiency/failure reasons, passed quality criteria and benchmark context. Namespaced SHA-256 identities use existing canonical serialization: Decimal representation and evidence presentation order cannot affect identity; meaningful evidence or policy changes do. No inspection timestamps enter identity. Per-fold/variant/scenario comparisons are deterministic and unranked.
+
+Governance boundary: this report cannot mutate the strategy lifecycle and contains no selection, promotion, execution authority or permission for PAPER/SHADOW/LIVE. A future explicit governance action may consider it separately. No policy is optimized automatically and no Adaptive Trend default changes. Unit tests use explicitly synthetic metric observations to exercise verdict branches, separately from integration checks consuming existing engine-produced research artifacts with engine re-entry blocked.
+
+Limitations: trusted in-process immutable artifacts and caller-recorded failure provenance, not a signed external evidence interchange; finite historical sample/undefined metrics can legitimately leave a verdict insufficient. The defaults are illustrative development hypotheses, not calibrated policy. The layer does not correct source research, resolve venue liquidity limitations, infer missing evidence, assess multiple-testing bias or authorize execution.
