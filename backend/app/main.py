@@ -17,6 +17,8 @@ from app.venues.router import router as venues_router
 from app.market_data.router import router as market_data_router
 from app.market_data.candle_router import router as candle_router
 from app.market_data.store_router import router as store_router
+from app.strategy_lab.api.router import router as strategy_lab_router
+from app.strategy_lab.api.validation_router import router as strategy_lab_validation_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -44,7 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @application.middleware("http")
     async def auth_response_headers(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith("/api/auth/"):
+        if request.url.path.startswith(("/api/auth/", "/api/strategy-lab/")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
         return response
@@ -60,6 +62,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(store_router, prefix="/api")
     application.include_router(intelligence_router, prefix="/api")
     application.include_router(regimes_router, prefix="/api")
+    application.include_router(strategy_lab_router, prefix="/api")
+    application.include_router(strategy_lab_validation_router, prefix="/api")
     return application
 
 

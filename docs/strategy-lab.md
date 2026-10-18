@@ -1015,3 +1015,88 @@ Reports retain strategy family/version/configuration identity, dataset identity,
 Governance boundary: this report cannot mutate the strategy lifecycle and contains no selection, promotion, execution authority or permission for PAPER/SHADOW/LIVE. A future explicit governance action may consider it separately. No policy is optimized automatically and no Adaptive Trend default changes. Unit tests use explicitly synthetic metric observations to exercise verdict branches, separately from integration checks consuming existing engine-produced research artifacts with engine re-entry blocked.
 
 Limitations: trusted in-process immutable artifacts and caller-recorded failure provenance, not a signed external evidence interchange; finite historical sample/undefined metrics can legitimately leave a verdict insufficient. The defaults are illustrative development hypotheses, not calibrated policy. The layer does not correct source research, resolve venue liquidity limitations, infer missing evidence, assess multiple-testing bias or authorize execution.
+
+
+## 9E Part 1 — Authenticated historical experiment API
+
+`POST /api/strategy-lab/experiments` is a synchronous, stored-data-only research adapter. It requires the existing active-user HttpOnly cookie session and an Origin exactly equal to the configured frontend URL, matching the existing protected POST convention. All Strategy Lab responses are no-store/no-referrer, including authentication and schema errors. There are no exchange credentials, orders, user-portfolio updates, experiment persistence or ingestion. The new `strategy_lab/api` package keeps FastAPI/Pydantic concerns outside all unchanged pure engines.
+
+Request fields: canonical_symbol (uppercase BASE/QUOTE); provider (BINANCE only); timeframe (15m, 1h, 4h, 1d); requested_candle_count (default 100, inclusive range 53–300); explicit evaluation_start and evaluation_end timezone-aware ISO-8601 strings; positive initial_capital and fixed base-asset quantity; execution object containing fee_rate, full_spread_rate, slippage_rate (fractional rates 0–1) and delay_candles (integer 0–300, default 0). Optional strategy_family/version can only declare ADAPTIVE_TREND/1.0.0. Extra fields, arbitrary strategy parameters, numeric JSON financial tokens, non-finite values, scientific notation, unsupported provider/timeframe and malformed boundaries are rejected. Financial inputs are plain decimal strings with up to 24 integer and 24 fractional digits; leading-dot fractions are accepted. Offset-aware timestamps normalize to UTC; naive timestamps are rejected.
+
+Example body shape (boundaries must correspond to actual stored rows; these timestamps do not assert data availability):
+
+```json
+{
+  "canonical_symbol": "BTC/USDT",
+  "provider": "BINANCE",
+  "timeframe": "1h",
+  "requested_candle_count": 100,
+  "evaluation_start": "2025-01-03T04:00:00Z",
+  "evaluation_end": "2025-01-05T04:00:00Z",
+  "initial_capital": "10000.00",
+  "quantity": "0.01",
+  "execution": {
+    "fee_rate": "0.001",
+    "full_spread_rate": "0.002",
+    "slippage_rate": "0.001",
+    "delay_candles": 0
+  }
+}
+```
+
+The adapter resolves the canonical instrument, then performs one bounded SELECT for exactly the requested count of latest stored rows with open_time < evaluation_end, for that instrument/provider/timeframe. End is exclusive and must equal the last selected open plus one interval. Start must be an actual selected candle open; at least the existing 52-candle analytical warm-up must precede it. The first selected candle is the explicit warm-up start. The count includes warm-up and evaluation. The adapter never prepends extra rows, silently reduces a requested count, filters away bad internal rows, sorts to repair a dataset, substitutes an instrument or fills a gap. The database query's descending order is reversed into chronological order before existing dataset validation. No stored provider support is inferred from current ticker mappings.
+
+The unchanged pipeline is create_dataset → replay_dataset (shared causal Intelligence/Regime/Adaptive Trend) → simulate_execution → account_simulation. Evaluation begins independently in CASH. Delay 0 means next candle OPEN after a completed-candle decision; delay N adds N candles. Quantity never resizes, costs remain explicit research assumptions, and unaffordable or otherwise invalid execution is a controlled failure. All dataset candles must be completed and available by the archival request cutoff; current time validates availability only and never enters deterministic identity. Financial drawdown points reuse the existing 9A drawdown_series with the same initial-capital baseline as accounting; no API-specific formula is introduced.
+
+Response sections:
+
+- experiment: deterministic experiment/dataset/research-result/configuration identities; family/version; canonical context; exact requested/actual count; warm-up and evaluation boundaries/counts; initial capital and quantity; fee/full-spread/slippage/delay assumptions and identities; accounting and analytical engine versions.
+- summary: initial capital, final marked equity, total/gross/net returns, max drawdown, completed-trade count, win rate, profit factor, expectancy, exposure percentage, turnover and separately incurred fee/spread/slippage totals. Existing definitions remain unchanged: total return includes final open-position marks, whereas gross/net returns are completed-trade returns; incurred costs can include an open entry.
+- trades: completed long/short outcomes with decision/fill timestamps, reference/adverse prices, quantity, gross/net P&L, separate costs, identity and entry/exit reason codes.
+- open_position: explicit entry and final mark provenance, quantity, unrealized P&L, recognized entry fee and existing collateral/proceeds fields, or null. Research shorts do not imply venue execution support.
+- equity_curve: evaluation-close UTC timestamp, cash, realized capital/P&L, unrealized P&L, total equity, shared drawdown and filled position state.
+- decisions: evaluation candle open, decision-close timestamp, decision identity/type/reasons and replay thesis state before/after. These states describe research replay, not filled positions; they may differ from accounting when a pending action remains unfilled.
+- regimes: aligned evaluation open/close timestamps, confirmed/candidate regime, confirmation count/required, retention/previous regime and reason codes. No regime is recalculated for presentation.
+- unfilled_decisions: explicit decision identity/type/time, eligible fill time, filled state and END_OF_DATASET reason. No final exit or position is fabricated.
+
+Every financial Decimal is serialized as its exact fixed-point string (including meaningful stored representation/trailing zeros), never float; undefined metrics remain JSON null. Every returned timestamp is UTC ISO-8601 with Z. Existing create_experiment binds the frozen dataset, fixed strategy defaults, requested history, replay/execution/accounting conventions, capital and quantity. Informational creation time is excluded from identity and the response. Identical stored snapshots and requests reproduce the entire response; meaningful capital/quantity/cost/boundary changes change identity. Nothing is persisted.
+
+Controlled errors: 401 authentication required; 403 untrusted/missing Origin; 404 instrument_not_found; 422 strict schema/input/evaluation-boundary errors; 409 insufficient_stored_history, insufficient_warmup, invalid_candle_dataset or research_execution_failed; 503 existing sanitized database-unavailable response. Internal exception messages/credentials are not returned. A known canonical instrument without stored history receives a history error, not a guessed market/provider fallback.
+
+Verification uses isolated dependency-overridden sessions under the global fail-closed test guard and real unchanged research engines. It covers cookie authentication, no mutation/network/ingestion, exact domain projection, deterministic identities, UTC normalization, all four timeframes and both initial historical instruments, warm-up exclusion, completed/open/short/unfilled outcomes and controlled errors. There is no OOS/walk-forward/sensitivity/benchmark/stress/verdict API in this stage.
+
+Limitations: synchronous bounded research only (maximum 300 candles to restrain causal-prefix replay cost), no worker queue/rate-limit system, persistence or strategy editing. The API does not claim statistically adequate evidence or produce a validation verdict. Existing research collateral/cost/close-mark limitations remain. Browser/UI integration is deferred; no frontend was changed.
+
+
+## 9E Part 2 — Authenticated validation API
+
+`POST /api/strategy-lab/validations` composes the existing 9D OOS, walk-forward, sensitivity, passive benchmark, stress and research-verdict framework. Authentication, exact configured frontend Origin, no-store/no-referrer headers, strict financial-string/time parsing and sanitized database failures are shared with Part 1. The experiment endpoint and its calculation/response behavior remain unchanged. There is no persistence, frontend, exchange connection, lifecycle mutation or execution authorization.
+
+The strict request declares canonical_symbol, BINANCE provider, timeframe (15m/1h/4h/1d), requested_candle_count (54–300), positive quote-asset initial_capital, fixed base-asset quantity and the same baseline execution object as experiments. Adaptive Trend family/version are fixed at ADAPTIVE_TREND/1.0.0; policy, strategy parameters, sensitivity variants and stress scenarios cannot be supplied by the caller. The existing DEFAULT_RESEARCH_POLICY is used unchanged.
+
+`primary` explicitly contains warmup_start, in_sample_start, out_of_sample_start and end. They strictly partition chronological analytical warm-up, IS and primary OOS; end is exclusive. `walk_forward_folds` contains 1–4 objects with those same four boundaries. Every fold requires at least 52 declared warm-up candles, lies inside the primary history and moves strictly forward. Whole fold histories (including warm-up) cannot overlap; expanding/reused training histories are not supported. Each period/fold independently starts CASH, without position/pending-fill carry. All timestamps use the Part 1 explicit timezone-aware ISO contract and normalize to UTC.
+
+The primary warmup_start/end duration must exactly equal requested_candle_count × timeframe. One bounded SELECT reads only that canonical instrument ID + provider + timeframe inside those boundaries. Exact requested row count and canonical data validation are required; total database candle count is never evidence of availability. Local fold snapshots are exact slices of those already-read parent rows, never extra queries or hidden history. A short, gapped, malformed or unavailable dataset is rejected. No provider call, currency substitution or ingestion is attempted. A one-fold request can execute and honestly return INSUFFICIENT_EVIDENCE under the unchanged three-fold default policy.
+
+Centralized API-owned OFAT probes (`validation_config.py`) are the unchanged default plus exactly two nearby alternatives: entry_min_ema_spread = 0.0016 (default 0.0015), and entry_fast_slope = 0.00021 (default 0.0002). Each alternative changes exactly one field. Sensitivity uses the primary OOS windows/assumptions. These are declared research probes, never a search, ranking, recommendation or replacement of defaults.
+
+Six stress scenarios are centralized: BASELINE; HIGHER_FEE adds 0.001 to baseline trading fee; WIDER_SPREAD adds 0.002 to baseline full spread; HIGHER_SLIPPAGE adds 0.001 to baseline slippage; ADDITIONAL_DELAY adds one whole timeframe; COMBINED_ADVERSE_COST applies all three rate increments with baseline delay unchanged. Rates are fractional research assumptions, not claims about Quidax or any venue. If increments exceed existing cost-model ranges, construction fails explicitly rather than clamping. A delayed action beyond dataset end remains unfilled under existing execution rules.
+
+The adapter invokes public unchanged OOS, walk-forward, sensitivity and benchmark engines, then passes the resulting evidence into the unchanged validation-report engine. Stress currently has an all-or-nothing public runner. To retain individually failed attempts without rerunning BASELINE or discarding successful/adverse scenarios, the adapter reuses its existing `_run` and `_scenario_result` composition helpers. No stress arithmetic is duplicated. BASELINE is the already-computed primary validation. Recognized existing unleveraged-capital failures become explicit provenance-bearing UNAFFORDABLE_EXECUTION records; their metrics remain null, and default evidence precedence is preserved. Other research failures return a sanitized controlled error; they are not mislabeled as capital failures. This private-helper integration is a deliberate compatibility limitation, not a change to the 9D engines.
+
+Response sections:
+
+- validation: API/report/evidence/strategy/dataset/policy identities and versions, canonical context, primary boundaries, candle count, capital, quantity, exact baseline execution assumptions, full declared policy, final verdict and source evidence identities.
+- primary_oos: validation/backtest identities and unchanged performance metrics (including separate costs).
+- walk_forward: validation identity, active-fold count, existing descriptive summary and per-fold explicit boundaries/identities/OOS metrics. Summary includes fold return-sign counts, mean/median/extremes, drawdowns, trade counts, undefined-metric coverage and cost totals; no equity curves are stitched.
+- sensitivity: baseline configuration identity and source identity, plus every OFAT variant's changed fields/values, configuration/validation identity, primary OOS metrics and existing baseline differences/sign-change evidence.
+- benchmarks: CASH and BUY_AND_HOLD for the exact primary OOS window, with matching frozen dataset/capital/quote currency, ending equity, return, drawdown, exposure, turnover, costs, identities and strategy-minus-benchmark differences. Existing passive pricing conventions remain unchanged.
+- stress: all six scenarios in code order, exact assumptions and identities, metrics/differences/sign changes, or explicit execution_failure/failure-source identity with null unavailable metrics. No failed scenario is dropped and no scenario is ranked.
+- criteria: every domain category/code/observation/requirement/status/reason/explanation, without API reinterpretation.
+- verdict_explanation: insufficiency reasons, failure reasons, passed criteria and benchmark context. Only INSUFFICIENT_EVIDENCE, FAILED_VALIDATION and VALIDATION_CANDIDATE are returned. A candidate is research evidence for consideration at a later controlled stage; it does not change lifecycle or authorize PAPER/SHADOW/LIVE.
+
+Financial Decimal values, including criteria, probe/stress differences and policy thresholds, serialize as exact strings; UTC timestamps are explicit; undefined metrics remain null. Counts and boolean flags remain their native JSON types. API validation identity binds the unchanged domain report and all source identities/API version; no request timestamp enters identity. Variants are ordered by configuration identity, scenarios by code and folds by the declared chronological plan, never profitability.
+
+Errors: 401/403 authentication/Origin; 404 unknown instrument; 422 strict request/chronology, interval/count or validation-construction errors; 409 exact-history shortage, invalid canonical candles or sanitized validation-execution failure; 503 sanitized database failure. No secret/connection or raw internal exception text is returned. If primary/sensitivity execution itself cannot complete, the request fails rather than returning a partial verdict. Only the explicitly supported capital-failure stress evidence is retained as a reportable attempted scenario.
+
+Limitations: synchronous bounded research (up to 300 parent candles/four disjoint folds and the fixed probes); computational work is larger than a single experiment and there is no worker queue. Default evidence requirements can remain unmet even when an API call succeeds. The adapter depends on existing stress helper contracts until a public partial-result orchestration interface exists. No statistically adequate live-dataset verdict, optimizer, parameter editing, promotion, notifications, experiment storage or frontend is introduced.
