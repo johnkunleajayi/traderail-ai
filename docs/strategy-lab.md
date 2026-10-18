@@ -404,3 +404,491 @@ During all named scenario decisions, network/provider entry points and database/
 ### Remaining limitations
 
 Synthetic boundary/adversarial coverage is not a mathematical proof for every possible input, a statistical validation, an execution-safety authorization or evidence of profitability. Static declared snapshots test the strategy's agreement gates; only the separate prefix test derives measurements from synthetic raw candles. Upstream analytical provenance and caller-supplied thesis state remain trusted inputs. Exits use agreement at T rather than a new multi-candle persistence model. Backtesting, cost-adjusted evaluation, parameter sensitivity research, execution and empirical testing remain outside Part 3.
+
+
+## Milestone 9C Part 1 — causal replay foundation v1.0.0
+
+`app.strategy_lab.replay.replay_dataset(dataset, strategy, *, as_of, initial_state=CASH,
+regime_configuration=REGIME_CONFIG)` is a pure synchronous research operation. It accepts an
+existing immutable `ResearchDataset` and a strategy implementing the shared `Strategy` protocol,
+including ADAPTIVE_TREND v1.0.0. It has no database, provider, HTTP, execution or metrics dependency.
+
+### Validation and dataset boundaries
+
+Before evaluating any strategy observation, replay re-runs the existing dataset factory validation
+and verifies the frozen fingerprint. The supplied tuple must exactly cover the declared warm-up
+start through exclusive evaluation end. Unordered rows, duplicates, internal gaps, incomplete
+candles, mixed context, invalid OHLCV, out-of-bound observations, changed contents/boundaries and
+future retrieval relative to the caller's archival cutoff are rejected. Nothing is sorted, repaired,
+interpolated, fetched or silently prepended. Errors reject the run rather than returning partial results.
+
+Evaluation must begin no earlier than `candidate_first_index(regime_configuration)`, derived from
+the existing intelligence and regime configuration. Currently that index is **52**: 52 warm-up
+candles followed by the first evaluation candle (53 observations inclusive). This accommodates
+all strategy-required measurements plus regime slope/structure/volatility history. It does not
+require a confirmed directional regime: the first eligible candidate can still be UNKNOWN while
+confirmation accumulates. Additional explicitly supplied warm-up is allowed and affects identity.
+No warm-up candle creates a replay decision or changes thesis state.
+
+### Exact causal evaluation sequence
+
+For each evaluation candle T, in supplied chronological order:
+
+1. Slice only the frozen prefix from the declared warm-up start through T, inclusive.
+2. Call the existing Market Intelligence calculation engine on that prefix. Its original
+   dataset-start initialization rules are retained; there is no hidden stabilization history.
+3. Pass only those feature rows through the existing Regime Engine, preserving its historical
+   confirmation state and UNKNOWN/UNSAFE semantics. No indicators or regime rules are duplicated.
+4. Construct the shared validated `StrategyInput` from T's candle, T's feature row, T's regime,
+   the declared strategy definition and the current research thesis state.
+5. Invoke `evaluate_strategy` through the shared contract. Apply only the explicit thesis transition.
+6. Append an immutable provenance record. Proceed to the next supplied evaluation candle.
+
+No full-dataset analytics are passed to the strategy. It receives a single validated observation,
+not the frozen snapshot, future rows or future dataset boundaries. Prefixes are recalculated
+transparently for this first foundation: work is quadratic in dataset length; no incremental
+optimization or large-history performance claim is made. Strategies remain trusted pure Python
+implementations; structural typing is not a security sandbox against malicious side effects or
+external closure state.
+
+### Archival time versus candle time
+
+`as_of` is an explicit validation cutoff, never a call to the system clock. Historical candles may
+have been retrieved after their market interval ended. Their original `retrieved_at` values are
+preserved, not rewritten to suggest real-time availability. For each prefix, the analytical/input
+cutoff is the later of T's completion boundary and the latest retrieval timestamp **in that prefix**.
+The prefix itself strictly limits market information through T. This is retrospective historical
+research, not an exchange-publication-latency or real-time delivery simulation. The informational
+caller cutoff does not enter replay identity; changing it without changing admissible data cannot
+change analytical results. Event timestamps remain the original completed candle timestamps.
+
+### Thesis-state transitions (not fills)
+
+| State before | Decision | State after |
+| --- | --- | --- |
+| CASH | ENTER_LONG | LONG |
+| CASH | ENTER_SHORT | SHORT |
+| LONG | EXIT_LONG | CASH |
+| SHORT | EXIT_SHORT | CASH |
+| Any | NO_ACTION | Unchanged |
+
+Every other transition is rejected, including duplicate entries, exits from CASH, opposite-direction
+exits and automatic reversal. The default initial state is CASH; a caller can explicitly declare
+LONG or SHORT without supplying quantity, balance, price or P&L. An entry decision updates a research
+thesis immediately for the next observation; it does **not** imply an order, fill or executable price.
+The cost model's delay assumption is not applied by this stage.
+
+### Reproducibility and immutable provenance
+
+The `ReplayResult` envelope retains the **exact full dataset fingerprint**, canonical context,
+explicit boundaries/counts, strategy definition/configuration identity, complete feature/regime
+configurations, replay version, initial/final thesis states, immutable records and a run identity.
+Each `ReplayRecord` retains its exact **causal-prefix dataset fingerprint**, canonical context,
+strategy family/version/configuration identity, candle times, state before/after, full intelligence
+row plus intelligence identity, full regime result/configuration/version, and the original
+StrategyDecision (including input and decision identities). No order/execution fields are added.
+
+Full snapshot identity necessarily changes when future history or evaluation end changes. Therefore
+that future-sensitive identity belongs to the envelope, while earlier records use prefix identity.
+Appending future observations preserves earlier record objects/identities exactly, provided original
+prefix contents, retrieval metadata, evaluation start, configuration and initial state are unchanged.
+The envelope binds those records back to the full frozen snapshot without leaking future provenance
+into earlier record identity. Record timestamps and analytical rows remain inspectable.
+
+All identities use the existing type-tagged canonical serialization and SHA-256 namespaces, never
+Python `hash()`. The feature identity binds prefix, complete feature configuration and exact feature
+row. Record identity binds replay version, prefix, feature identity, original decision identity and
+resulting thesis state. Decision identity already binds the exact input, full regime evidence and
+strategy configuration. Run identity additionally binds the full dataset, both analytical
+configurations, strategy configuration, initial state and ordered record identities. Decimal scale
+and dictionary order do not alter numeric/configuration identity. No binary floats are introduced.
+
+### Tests and exclusions
+
+Synthetic tests verify causal prefix arguments at both engines and the shared strategy contract,
+actual Adaptive Trend reuse, exact frozen/prefix provenance, warm-up exclusion/pending confirmation,
+all 15 state × decision transitions, deterministic replay, future append/price-change invariance,
+input immutability, configuration/state identity changes, supported timeframes, small Decimal prices,
+archival retrieval semantics, malformed/tampered snapshots and fresh-process dependency isolation.
+
+There are no fills, simulated orders, entry/exit prices, cost application, P&L, equity curves,
+performance/benchmark calculations, optimization, walk-forward execution, APIs, frontend changes,
+persistence or migrations. This stage proves causal decision replay, not profitability or execution
+realism. Later 9C/9D work must make those assumptions explicit rather than infer them from thesis states.
+
+
+## Milestone 9C Part 2 — deterministic historical execution simulation v1.0.0
+
+`app.strategy_lab.execution.simulate_execution(dataset, replay, *, quantity, cost_model, as_of)`
+consumes the frozen research snapshot and its existing causal replay. It creates immutable
+historical **research fills**, not orders or TradeIntents. It does not call or recalculate a strategy,
+Market Intelligence or regimes, and has no provider/database/API/frontend integration. Part 1 is unchanged.
+
+### Next-open timing and explicit delay
+
+A decision based on completed candle T cannot fill at T's close. With zero additional delay,
+the reference is the **next completed stored candle's OPEN**. For a decision at dataset index i:
+
+`eligible_index = i + 1 + additional_delay_candles`
+
+The fill event timestamp is that candle's UTC open time. The historical row must be completed
+at the explicitly supplied archival validation cutoff. High, low and close validate the source row
+but never select/improve the price. The timing rule is versioned as `NEXT_COMPLETED_CANDLE_OPEN`.
+A bar open is a simplified historical reference, not a claim that it was a guaranteed executable quote.
+
+The existing ResearchCostModel stores `execution_delay` as a nonnegative `timedelta`. The immutable
+HistoricalExecutionConfiguration bridges it using exact integer microseconds:
+
+`additional_delay_candles = execution_delay_microseconds / timeframe_microseconds`
+
+A nonzero remainder is rejected; there is no rounding, interpolation or fractional-bar execution.
+For 1h candles, `timedelta(0)` means the next candle, `timedelta(hours=1)` means one additional
+candle later, and `timedelta(hours=2)` means two additional candles later. For 15m candles an
+additional delay of one candle is `timedelta(minutes=15)`. Negative/non-duration values are rejected
+by the existing cost model. Delays exceeding representable timestamps are controlled errors.
+No conflicting second delay setting is maintained. The execution configuration fingerprint includes
+the timeframe, derived integer delay, timing rule, pricing/fee conventions and full cost configuration.
+
+### Exact adverse pricing formulas
+
+Let P be the eligible candle open, q the caller's positive **base-asset quantity**, s the configured
+full bid/ask spread fraction, l the slippage fraction and f the trading fee fraction.
+The existing cost model convention is retained: each action pays half the declared full spread.
+Rates are caller-declared research assumptions, never hard-coded Binance/Quidax fees.
+
+- Per-unit spread magnitude: `a = P × s × 0.5`
+- Per-unit slippage magnitude: `b = P × l`
+- ENTER_LONG or EXIT_SHORT: `fill_price = P + a + b`
+- ENTER_SHORT or EXIT_LONG: `fill_price = P − a − b`
+- Reference notional: `q × P`
+- Adjusted fill notional: `q × fill_price`
+- Spread cost: `q × a`
+- Slippage cost: `q × b`
+- Separate trading fee: `(q × fill_price) × f`, in quote currency
+
+Spread and slippage are additive adjustments against the same reference P, not sequentially
+compounded. Their signed per-unit adjustments and positive quote-currency costs are retained.
+Fees do not alter the fill price. Spread/slippage are already embedded in price; later P&L work
+must not subtract them twice. A non-positive adjusted price is rejected rather than clamped or
+repaired. Adverse prices are not capped to the candle's high/low to invent favorable execution.
+All arithmetic uses existing exact Decimal sums/products, independent of ambient Decimal precision.
+No binary financial floats, tick rounding, quantity rounding or unspecified precision changes occur.
+
+### Quantity and state safety
+
+The caller must supply one positive finite Decimal quantity in base-asset units for each action
+in the run. The simulator never derives a quantity from capital, equity, risk, confidence or a
+strategy. It does not accept an ambiguous quote-notional value or decide a notional-to-quantity
+conversion policy. Both reference and adjusted notional are explicit outputs of the given quantity.
+Quantity is fixed across this foundation's actions, so matching entries/exits carry the same units.
+An explicitly declared initial LONG/SHORT thesis assumes those caller-specified units already exist;
+no prior entry price, value or profit is invented.
+
+Only valid replay transitions can fill. Replay context, boundaries, counts, complete ordered rows,
+frozen/prefix fingerprints, reconstructed shared StrategyInput/StrategyDecision identities,
+analytical versions, record identities, thesis transitions and run identity are checked before
+any result is returned. This validates existing replay artifacts without duplicating analytical or
+strategy calculations. The accepted replay identity schema is the existing v1 contract.
+
+Part 1 thesis state changes immediately after a decision; Part 2 filled state changes only at
+available fill events. A single fixed delay preserves actionable-decision order, so available fills
+are a prefix of those decisions. There are no duplicate entries, unmatched filled exits, simultaneous
+long/short theses or automatic reversals. NO_ACTION creates no fill and incurs no cost.
+
+When an eligible index falls beyond the explicit evaluation end, the action is represented in
+`unfilled_decisions` with `END_OF_DATASET`, the original decision/record/prefix identity, decision time,
+expected eligible time, replay thesis state and unchanged filled state. A pending final entry cannot
+create an actual filled position; a pending final exit cannot erase one. Multiple pending actions
+can refer to replay thesis states not yet realized as fills; they remain unfilled and do not bypass
+transition validation. An internal missing candle is corruption and rejected, not an end-of-data case.
+No candles outside the frozen snapshot are sought. Extending a dataset can make a previously pending
+action eligible but cannot change a fill already available from an unchanged prefix.
+
+### Provenance, reproducibility and limitations
+
+Each immutable fill carries the original StrategyDecision/decision identity and replay record
+identity, canonical context, strategy family/version/configuration identity, decision timestamp,
+eligible UTC open timestamp, filled states before/after, action, explicit quantity, exact price/cost
+breakdown and immutable execution/cost configuration (including delay, cost-model identity and
+version). Fill identity uses SHA-256 canonical serialization of the prefix through the eligible
+completed candle, original decision/record identities, execution configuration, timestamps,
+states, quantity and price breakdown. Full dataset/replay identities belong to the simulation
+envelope; earlier fills retain stable causal identities when future history is appended.
+
+These are frozen-data retrospective assumptions, not a closed-loop execution-aware strategy replay:
+Part 1 decisions remain unchanged and are not reevaluated with pending fill state. There is no
+liquidity, queue, partial-fill, cancellation, market-impact, latency-distribution, funding, borrow,
+margin, tick-size or quote-availability model. Initial SHORT research support implies no venue
+shorting capability. Original archival retrieval metadata remains intact; it is not simulated
+real-time market delivery. Configured rates have no empirical profitability or execution-quality claim.
+
+Tests cover all four actions, NO_ACTION, distinct next-open versus same-close references, whole-bar
+delay/timeframe conversion, exact last-candle eligibility, final/pending decisions, adverse costs
+independently, separate fees, zero costs, exact Decimal/positive-price boundaries, repeated identity,
+future append invariance, immutable inputs, corrupted data/replay provenance, illegal transitions,
+and absence of provider/database access or analytical/strategy recalculation.
+
+No portfolio sizing policy, performance metrics, realized P&L aggregation, equity curve, benchmarks,
+optimization, walk-forward evaluation, Risk Engine, TradeIntent, venue orders, paper/live execution,
+API, frontend, persistence, migrations or dependency additions are introduced.
+
+
+## Milestone 9C Part 3 — deterministic accounting v1.0.0
+
+`app.strategy_lab.accounting.account_simulation(dataset, replay, execution, *, initial_capital, as_of)`
+accounts for an existing frozen Part 2 simulation. It starts in CASH and requires caller-supplied
+finite nonnegative Decimal initial capital denominated in the canonical instrument's **quote asset**.
+For BTC/USDT the capital and P&L are USDT units, not an implied fiat USD conversion. This capital is
+independent of the user's Paper Portfolio: no database/user/account state is read or modified.
+Zero initial capital is allowed for a no-fill CASH experiment; a positive-sized entry cannot be funded.
+A pre-existing LONG/SHORT start is rejected because Part 2 provides no original entry basis/capital
+inventory; the accountant never fabricates one.
+
+### Input integrity and chronological ledger
+
+The original Parts 1 and 2 remain unchanged. Accounting reuses `simulate_execution` to validate the
+provided simulation against the frozen dataset, replay, explicit quantity and exact execution/cost
+configuration. Its output must equal the supplied immutable artifact. This revalidates pricing and
+provenance without recalculating strategies, indicators or regimes, querying a provider or changing data.
+
+The run-local ledger applies actual fills at their eligible candle OPEN in chronological order.
+It then creates one immutable equity observation at each **completed evaluation candle CLOSE**.
+Warm-up candles initialize upstream analytics only: they create no equity/performance observations.
+An observation uses only fills available by that close and that candle's exact stored close; no later
+close, high/low-selected price, inferred price or synthetic closing fill is used. The explicit evaluation
+end remains exclusive. For exposure duration an open thesis spans the full entered candle interval
+through the next exit open or evaluation end, avoiding a spurious one-millisecond timestamp deduction.
+
+### Long and short P&L and exact reconciliation
+
+For quantity q, entry/exit reference opens R_e/R_x, adjusted simulated fill prices F_e/F_x,
+and separately recorded fees:
+
+- LONG gross movement: `(R_x − R_e) × q`
+- SHORT gross movement: `(R_e − R_x) × q`
+- LONG net outcome from fills: `(F_x − F_e) × q − entry_fee − exit_fee`
+- SHORT net outcome from fills: `(F_e − F_x) × q − entry_fee − exit_fee`
+- Both directions: `gross movement − total spread cost − total slippage cost − total fees = net outcome`
+
+Every matched trade enforces this equality **exactly**, using existing exact Decimal arithmetic,
+not a floating tolerance. `metrics.RealizedTrade` supplies the existing gross-minus-costs definition.
+Spread/slippage are already embedded adversely in adjusted fill prices: they are not deducted a
+second time from fill-based P&L. Costs remain separately inspectable to explain the difference from
+reference-price market movement. Matched direction, quantity, strategy/configuration, canonical context
+and entry-before-exit chronology are enforced. The immutable completed trade retains both original
+fills, timestamps, reference/adjusted prices, gross/cost/net decomposition and reproducibility identities.
+
+### Cash, realized capital and open positions
+
+Cash is **free spendable quote cash**, not total equity. A funded long entry subtracts adjusted entry
+notional plus its fee; an exit adds adjusted exit proceeds minus its fee. Long equity is
+`cash + q × current completed close`.
+
+Fees are realized expenses at the fill that incurs them, including an entry whose position remains
+open. Let C be completed-trade net P&L (including all costs on those closed trades), and f_open the
+entry fee of the single remaining open position, or zero:
+
+- Ledger realized P&L: `C − f_open`
+- Realized capital: `initial_capital + C − f_open`
+- Open LONG unrealized P&L: `(mark_close − entry_fill_price) × q`
+- Open SHORT unrealized P&L: `(entry_fill_price − mark_close) × q`
+- Total equity: `realized_capital + unrealized_pnl`
+
+Open spread/slippage remain embedded in the entry fill basis and therefore in unrealized P&L.
+They are not prematurely realized. Equity observations separately expose completed-trade net P&L,
+gross realized P&L, fee recognition, incurred cost totals, free cash, realized capital, unrealized
+P&L, equity, state, quantity and exact causal mark provenance. The fee ledger must equal closed-trade
+fees plus any open-entry fee. Cash/asset and realized/unrealized equity representations must reconcile
+exactly on every observation.
+
+At the dataset end, an open position retains its original entry fill/basis, quantity, direction,
+last mark and unrealized result. There is **no liquidation**, estimated exit fee or invented exit.
+An unfilled entry/exit remains the original Part 2 unfilled decision and incurs no fill cost or
+additional accounting state change. Completed-trade statistics never include an open position.
+
+### Explicit unleveraged capital and simplified short collateral
+
+The caller's quantity is never resized. Every long entry must fit free cash including its actual
+fee; loss-reduced capital must also fund later entries. No deposits, withdrawals, lending, interest,
+implicit credit, financing rate or automatic margin transaction is invented.
+
+For research SHORT only, v1 reserves **100% of the entry reference notional from the caller's own
+capital**, pays the entry fee from free cash, and segregates adjusted sale proceeds. Short proceeds
+cannot fund another action and are never reported as spendable cash. While open:
+
+`short_equity = free_cash + reserved_own_capital + restricted_sale_proceeds − q × mark_close`
+
+The ledger enforces `q × price <= total_equity` at entry's reference open and every completed close
+while SHORT, imposing a conservative one-times-equity exposure ceiling. Insufficient entry funding,
+negative settlement cash, or an open short exceeding that ceiling rejects the experiment. At an exit,
+reserved capital and restricted proceeds are released only to settle actual cover notional and fee;
+any remainder becomes free cash. A gap that makes settlement require borrowing is rejected. No automatic
+resizing, liquidation, margin call, collateral top-up or forced trade is introduced to rescue a run.
+
+This is an explicit restrictive research convention, **not a venue-realistic margin or borrow model**.
+Short exposure inherently represents a hypothetical borrowed-asset position; no actual borrowing or
+venue support exists here. No claim is made that Quidax spot supports shorts. The model checks entry
+and completed marks/settlement, not hypothetical intrabar margin/solvency conditions between those points.
+
+### Reusing 9A metrics without changing definitions
+
+`performance.py` is an adapter to the unchanged existing `metrics.py`, not a second formula library.
+Completed outcomes project to `metrics.RealizedTrade` for:
+
+- Gross/net returns: completed gross/net P&L divided by initial capital.
+- Trade count, win/loss rates, profit factor, average win/loss and expectancy: **completed trades only**.
+  Wins/losses use net outcomes; breakevens remain in the denominator for win/loss rates and expectancy.
+  Average loss is the positive loss magnitude. No-loss profit factor stays None, including all-win runs.
+- Total return: final **marked equity** versus explicit initial capital, including open P&L and paid fees.
+- Maximum drawdown: the primitive receives explicit initial capital followed by evaluation equity values,
+  so the first paid cost is not hidden. This baseline is the supplied starting capital, not a warm-up price.
+- Exposure: exact filled-position duration as a percentage of declared evaluation duration.
+- Turnover: all unsigned **adjusted fill notionals**, each entry/exit leg included, divided by initial capital.
+
+All-fill fee/spread/slippage totals include costs on an open entry. Cost-only projections with zero
+gross movement reuse the existing cost aggregation primitives; those projections are **never** passed
+to trade count, win/loss, expectancy or return statistics. Both completed-trade totals and incurred
+all-fill costs are retained separately. Gross/net returns can therefore differ from total equity
+return while a position remains open. Undefined values remain None under the established 9A rules;
+zero capital does not produce fabricated returns, turnover or drawdown. Exposure is percentage units;
+returns, turnover and drawdown are fractions. No metric is annualized or interpreted as profitability evidence.
+
+### Immutable composed result and deterministic identity
+
+`ResearchResult` composes canonical context/full dataset identity, explicit initial capital, versioned
+accounting configuration, the original replay (including strategy and analytical configurations and
+all records), original execution (including cost model, fills and unfilled decisions), immutable completed
+trades, optional open position, chronological equity observations, completed-trade totals, incurred costs
+and the shared performance results. No wall-clock inspection timestamp enters identity.
+
+Each trade identity binds its two causal fill identities, accounting version/configuration and exact
+P&L/cost decomposition. Each equity observation binds its frozen prefix through that candle, accounting,
+strategy and execution configurations, initial capital, exact ledger/mark values, causal fill identities
+and the previous observation identity. Appending future history cannot rewrite earlier equity or trade
+records. Full-run result identity additionally binds full dataset/replay/execution identities, initial
+capital, accounting configuration, ordered trade/equity identities and performance summary, using the
+existing canonical serialization and SHA-256 namespaces. Decimal representation scale and dictionary
+ordering retain the established identity semantics; the explicit archival validation clock is informational.
+
+### Coverage and limitations
+
+Deterministic hand-checkable tests cover profitable/losing long and short trades, breakevens, sequential
+trades, fees/spread/slippage independently and together, zero costs, high-precision cost reconciliation,
+open positions, pending final decisions, cash-only/zero-capital runs, marked drawdown, denominator and
+profit-factor edge cases, actual exposure/turnover, entry/cover funding, exact capital boundaries,
+short collateral limits, immutable/provenance integrity, repeated execution, future append invariance
+and delegation to every existing metric primitive. No external network/database is needed by these tests.
+
+This is research accounting over already-frozen replay decisions, not a closed-loop strategy reevaluation
+with pending fills. Historical execution simplifications from Part 2 remain: no partial fills, liquidity,
+borrow availability, market impact, venue margin, funding, taxes, FX conversion or intrabar risk simulation.
+Per-prefix validation/replay remains unsuitable for unbounded large-history optimization. No parameter
+optimization, walk-forward scoring, strategy promotion, benchmark comparison, Risk Engine, TradeIntent,
+real/paper/venue orders, exchange accounts, API, frontend, persistence, migration or dependency is added.
+
+
+## Final integrated Milestone 9C audit
+
+`tests/test_integrated_9c_audit.py` exercises the complete frozen-dataset → causal Intelligence →
+Regime Engine → **unchanged default ADAPTIVE_TREND v1.0.0** → StrategyDecision → replay thesis →
+next-open simulated fills/costs → accounting/equity → shared 9A metrics pipeline. No scripted
+strategy decisions, fabricated analytical rows or adjusted strategy/regime thresholds are used.
+Synthetic prices use repeating +1/+1/−1 drift/pullbacks and their downward mirror, then explicit
+trend reversals. The frozen datasets declare 128 warm-up candles, with evaluation starting before
+the first strategy entry. All prices, history boundaries and cost assumptions are synthetic test inputs.
+
+Coverage includes actual profitable/losing long and short trades, sequential directional trades,
+flat no-trade history, final open LONG/SHORT, final unfilled entry, delayed unfilled exit, a gapped
+next OPEN distinct from the decision CLOSE, and a small gross winner made net-negative by costs.
+The default strategy decides whether/when to act; tests never force a production decision branch.
+These patterns are adversarial test fixtures, not evidence that the strategy is profitable.
+
+### Independent accounting oracle
+
+Selected expectations are literal hand-checkable values derived with independent rational cash
+arithmetic, without importing production accounting/pricing/numeric helpers. Quantity is one base
+unit; initial capital is 10000 quote units. Research assumptions for the ordinary oracle cases are
+fee 0.001, full spread 0.002 (half per leg), and slippage 0.001. They do not claim venue-specific fees.
+
+| Synthetic case | Entry/exit reference | Entry/exit adverse fills | Fees | Spread | Slippage | Gross P&L | Net P&L / ending realized capital |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Long winner | 177 / 194 | 177.354 / 193.612 | 0.370966 | 0.371 | 0.371 | 17 | 15.887034 / 10015.887034 |
+| Long loser | 177 / 174 | 177.354 / 173.652 | 0.351006 | 0.351 | 0.351 | -3 | -4.053006 / 9995.946994 |
+| Short winner | 223 / 206 | 222.554 / 206.412 | 0.428966 | 0.429 | 0.429 | 17 | 15.713034 / 10015.713034 |
+| Short loser | 223 / 226 | 222.554 / 226.452 | 0.449006 | 0.449 | 0.449 | -3 | -4.347006 / 9995.652994 |
+| Small winner, fee 0.01 | 177 / 179 | 177.354 / 178.642 | 3.559960 | 0.356 | 0.356 | 2 | -2.271960 / 9997.728040 |
+
+Closed scenarios end in CASH with zero unrealized P&L and equity equal to ending realized capital.
+The two-trade scenario has gross P&L 35 and final cash/equity 10032.801070 after explicit costs.
+Independent open-position expectations also assert cash, fee timing, collateral, restricted proceeds,
+realized capital, mark and unrealized P&L: open LONG equity is 10000.468646 (realized capital
+9999.822646 + unrealized 0.646); open SHORT equity is 10000.331446 (9999.777446 + 0.554).
+The entry-open-gap test marks a 180.360 fill against a completed close of 178, producing equity
+9997.459640 rather than a misleading same-close fill. No final liquidation is invented.
+
+For every completed audit trade, exact independent `Fraction` arithmetic confirms both reference
+gross minus explicit spread/slippage/fees and adjusted-fill cash P&L minus fees equal the same net
+result. No tolerance is used for monetary reconciliation. Only non-terminating percentage/drawdown
+divisions use explicit tight tolerances justified by the existing Decimal-50 division convention.
+
+### Causality, states, capital and identity guarantees
+
+A longer synthetic dataset shares an exact earlier prefix with a shorter completed-trade dataset.
+The audit compares Intelligence rows, regime results, StrategyDecisions, available fills, completed
+trades and equity observations directly: all earlier objects/identities remain equal. Full-run
+identities correctly change with the extended frozen boundary. A pending final entry can become a
+new available fill after extension without rewriting any previously available observation.
+Instrumentation passes through real calculations and the shared strategy contract while checking
+that each analytic call receives exactly the prefix through its evaluation candle. Network/HTTP
+and database entry points are forbidden in a fresh composed pipeline test.
+
+State consistency is checked on each layer's own event clock. Replay thesis changes at the completed
+decision candle; executed/accounted state changes at the eligible future open. Equating those clocks
+would be an incorrect audit. A delayed final exit can leave replay thesis CASH while actual filled
+and accounted state remain LONG; the final unrealized loss remains visible and no exit is fabricated.
+Entries/exits alternate legally, quantities remain caller-supplied, completed trades require actual
+matching fills, and equity/cash/short collateral reconcile independently at each evaluated close.
+
+Unaffordable actual Adaptive Trend entries fail without resizing. Nominally fundable short entries
+also fail if adverse costs breach the explicit one-times-equity short exposure limit. Short proceeds
+remain restricted, not spendable cash. Independent rational calculations verify running-peak drawdown,
+actual exposure intervals, adjusted-notional turnover and warm-up exclusion. The audit preserves the
+existing distinction between closed-trade return and marked total equity return.
+
+Two fresh complete replays with equivalent Decimal representations and different ambient precision
+produce identical decisions, fills, trades, curve, metrics and final result identity. Meaningful
+fee/delay/quantity/capital changes alter the appropriate execution/accounting identities while leaving
+canonical strategy decisions unchanged. No strategy threshold is changed to obtain these outcomes.
+
+No financial defect requiring production changes was identified by this audit. Parts 1–3 and the
+strategy/analytical/metric implementations remain byte-for-byte unchanged; only audit tests and this
+evidence documentation are added. Existing limitations remain: retrospective archival provenance,
+fixed thesis replay rather than pending-fill-aware strategy reevaluation, simplified next-open and
+short collateral assumptions, completed-close valuation without intrabar solvency/liquidity, and no
+empirical profitability or venue execution claim. This audit adds no product functionality.
+
+
+### Database-preservation verification caveat
+
+The final audit regression suites passed (1077 backend tests, including 42 integrated audit tests,
+and 112 frontend tests), as did pip check and the production build. Alembic remained
+`0006_market_candles (head)`, with no dependency, migration or frontend/production source changes.
+
+The **live database preservation check failed**: the pre-audit snapshot contained 503 candles,
+whereas the final read-only check found 526. A subsequent read-only diagnostic confirmed that all
+original 503 full rows exactly match their pre-audit fingerprint and every other application table
+also matches. The difference is 23 additional BTC/USDT / BINANCE / 1h rows, created in one batch at
+2026-10-17 10:40:37 UTC, after the baseline snapshot. The source of that insertion was not established.
+No rows were removed or changed by the audit to force the expected count; the baseline was not reset.
+Therefore the requested exact-503/full-database-unchanged condition cannot be certified as passed.
+The synthetic research pipeline has no ingestion path and its composed network/database-forbidden
+test passes, but that does not establish which separate process inserted the live batch.
+
+
+### Automated database safety after the 9C audit
+
+The investigation found a legitimate 23-candle refresh through the normal ingestion path; its exact caller was not established. The accepted stored-candle baseline is now 526, preserving the original 503 rows.
+
+Backend pytest installs a fail-closed connection guard before test-module collection. It replaces inherited database settings with a non-application sentinel and blocks physical SQLAlchemy and psycopg connections, including explicit URLs. Existing explicitly injected mocked sessions/dependency overrides remain supported. Python subprocess tests inherit a test-only bootstrap that blocks physical network connections without importing application/database modules. Real database integration tests are not enabled: a test database name or local host alone is insufficient proof of isolation. A future real integration harness would need separately verified disposable database isolation.
+
+This guard applies only to pytest and its ordinary inherited Python subprocesses; production runtime, operational helpers and manual verification commands are unchanged. It is an accidental-access safeguard, not a sandbox against code deliberately removing the guard or launching Python with environment/site initialization disabled. Read-only operational fingerprint verification remains separate from pytest.
