@@ -1,0 +1,1648 @@
+{
+  "request": {
+    "canonical_symbol": "BTC/USDT",
+    "provider": "BINANCE",
+    "timeframe": "1h",
+    "requested_candle_count": 60,
+    "primary": {
+      "warmup_start": "2025-01-01T00:00:00Z",
+      "in_sample_start": "2025-01-03T04:00:00Z",
+      "out_of_sample_start": "2025-01-03T06:00:00Z",
+      "end": "2025-01-03T12:00:00Z"
+    },
+    "walk_forward_folds": [
+      {
+        "warmup_start": "2025-01-01T00:00:00Z",
+        "in_sample_start": "2025-01-03T04:00:00Z",
+        "out_of_sample_start": "2025-01-03T06:00:00Z",
+        "end": "2025-01-03T12:00:00Z"
+      }
+    ],
+    "initial_capital": "10000",
+    "quantity": "1",
+    "execution": {
+      "fee_rate": "0.001",
+      "full_spread_rate": "0.002",
+      "slippage_rate": "0.001",
+      "delay_candles": 0
+    },
+    "strategy_family": "ADAPTIVE_TREND",
+    "strategy_version": "1.0.0"
+  },
+  "response": {
+    "validation": {
+      "api_version": "1.0.0",
+      "validation_identity": "sha256:7a16f8a6f35e5bf55f4f76cf89931ec8123c3c18ae70de49ad71a6e0e88c3477",
+      "report_identity": "sha256:59043d1f6e9549eebae95ee3fec8c811c72f2b028a24d44c114e8c517a1b0fdb",
+      "evidence_identity": "sha256:4e8c74f7bcea462ad3f0cda4ae8e7b215368cea05072624148d4b7ed1dff38a5",
+      "strategy_family": "ADAPTIVE_TREND",
+      "strategy_version": "1.0.0",
+      "strategy_configuration_identity": "sha256:8b63971c586e202e50172add5cd50b86c2fd0ee9cd84a30cda6d5f4d3d2ef92b",
+      "dataset_identity": "sha256:e1780095f7b49a04ed1942320888d7260e5d56277cd3b20d6940d81770ebcbca",
+      "canonical_symbol": "BTC/USDT",
+      "provider": "BINANCE",
+      "timeframe": "1h",
+      "candle_count": 60,
+      "primary_boundaries": {
+        "warmup_start": "2025-01-01T00:00:00Z",
+        "in_sample_start": "2025-01-03T04:00:00Z",
+        "out_of_sample_start": "2025-01-03T06:00:00Z",
+        "end": "2025-01-03T12:00:00Z"
+      },
+      "initial_capital": "10000",
+      "quantity": "1",
+      "baseline_execution": {
+        "fee_rate": "0.001",
+        "full_spread_rate": "0.002",
+        "slippage_rate": "0.001",
+        "delay_candles": 0,
+        "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+        "cost_model_identity": "sha256:16ba526870807a12c15b8d9fb16c8c464cef8a4aa12b80644fcae82667bad799",
+        "execution_configuration_identity": "sha256:2995a4c27b97b58984ad3b80c4ef43049173782e8b38ae3cbe1ab5339e7d6cab"
+      },
+      "policy_identity": "sha256:95075ab3df1e49f60c9ba91d1d8b9d4f1323f4e78e9f874f13a78c0a11e57b19",
+      "policy_version": "1.0.0",
+      "policy_configuration": {
+        "version": "1.0.0",
+        "minimum_oos_completed_trades": 30,
+        "minimum_walk_forward_folds": 3,
+        "minimum_active_folds": 3,
+        "minimum_non_losing_fold_proportion": "0.67",
+        "maximum_oos_drawdown": "0.20",
+        "maximum_worst_fold_drawdown": "0.25",
+        "minimum_oos_expectancy": "0",
+        "minimum_oos_profit_factor": "1.10",
+        "minimum_stress_scenarios": 4,
+        "maximum_stress_return_degradation": "0.03",
+        "allow_stress_return_sign_flip": false,
+        "minimum_stress_completed_trades": 10,
+        "minimum_stress_trade_retention": "0.50",
+        "require_sensitivity_stability": true,
+        "minimum_sensitivity_variants": 2,
+        "maximum_sensitivity_return_degradation": "0.02",
+        "allow_sensitivity_return_sign_flip": false,
+        "minimum_variant_completed_trades": 10,
+        "minimum_variant_trade_retention": "0.50",
+        "require_cash_comparison": true,
+        "require_buy_and_hold_comparison": true,
+        "cash_treatment": "INFORMATIONAL",
+        "buy_and_hold_treatment": "INFORMATIONAL",
+        "minimum_benchmark_excess_return": "0",
+        "benchmark_scope": "PRIMARY_OOS",
+        "fold_consistency_basis": "ACTIVE_FOLDS"
+      },
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "source_evidence_identities": {
+        "BENCHMARK:sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83:BUY_AND_HOLD": "sha256:ed36fbcccaaa262edbbfc2537b1becba5987883e7f7e90683666081f80846c96",
+        "BENCHMARK:sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83:BUY_AND_HOLD:RESULT": "sha256:1309f1ed2e1c184f9e33477c7b692aeda647adfd20d2ed866e9c27b7da4fec3a",
+        "BENCHMARK:sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83:CASH": "sha256:ca9753321c4667bd51118ce9d47822a621f1b40de28eaea44b23994052379add",
+        "BENCHMARK:sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83:CASH:RESULT": "sha256:4d7186c8ef0b7655b55de990154acb9a09a98a06e31bba1d9fd3a6ae195415ad",
+        "FOLD:0": "sha256:2a8b1a55c3809ee29d24f0014e90497aabbc984dfc9081519622aff43efd8ffe",
+        "FOLD:0:IS": "sha256:11cd0a26605d3ab23f15ac08c3d07866077ce0989cc3451e1de640944d4d1d5e",
+        "FOLD:0:OOS": "sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83",
+        "FOLD:0:VALIDATION": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+        "IS_BACKTEST": "sha256:11cd0a26605d3ab23f15ac08c3d07866077ce0989cc3451e1de640944d4d1d5e",
+        "IS_OOS": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+        "IS_OOS_PLAN": "sha256:fe30de52e1131bcfd78c97205e4e6f9ae2c635294b567c60b10b89cf5937690d",
+        "OOS_BACKTEST": "sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83",
+        "SENSITIVITY": "sha256:e20457486238fae46deebe50c5fbe6036a762332fffe03d2752572962a022396",
+        "SENSITIVITY:sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5": "sha256:525448d0c30b9e8236cc3efd30167a5ab2bc0d6b38524b01b2fc693ec4f770b9",
+        "SENSITIVITY:sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40": "sha256:6e7d06e70199ceade63fb9048df0240d8e4411e35b843c63925b83d0b96151f5",
+        "SENSITIVITY_BASELINE": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+        "SENSITIVITY_PLAN": "sha256:5fd2a1240a2d666b2d45d731f9cfbc4cf3bd69a6eb1e4ac3b1303930faef0edc",
+        "STRESS": "sha256:9e4a24cff6ebfef7787ac44c80e5c0e097504f2b841eed717d8295495fe0cd56",
+        "STRESS:ADDITIONAL_DELAY": "sha256:d1d9e5d9586ca415702f1c0012459520c5a644ec920b75bb2742366c8b233a25",
+        "STRESS:ADDITIONAL_DELAY:VALIDATION": "sha256:09bf0799c4985ff231ccc7327fc3a782c65c7809eb819cce90dd8760141fe2ec",
+        "STRESS:BASELINE": "sha256:84e539ef0c19f59ff1bbecda0d76eebce068f9b170e31538053e69493c45fe44",
+        "STRESS:BASELINE:VALIDATION": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+        "STRESS:COMBINED_ADVERSE_COST": "sha256:b40f4d3263ba0c85f5c2d8844e91a676f4fdd6f2af17756d496165ccb4b0f57f",
+        "STRESS:COMBINED_ADVERSE_COST:VALIDATION": "sha256:b0de671ee2a114bf9bc4cb58c84fcce014b97c42fa6c9105c1c513185978939a",
+        "STRESS:HIGHER_FEE": "sha256:311594a43f93501628c24e5197839a134cf5ee48227488eda040adc6148bbb14",
+        "STRESS:HIGHER_FEE:VALIDATION": "sha256:9364f3a7d5dd1e3704a4d4c9317073664edccb202bd6cfdd4ae7ee97ecc91315",
+        "STRESS:HIGHER_SLIPPAGE": "sha256:3480162616c7828d3445535433e4d0334508a4b16186a0495c804c7c70e823cd",
+        "STRESS:HIGHER_SLIPPAGE:VALIDATION": "sha256:e9e6d28aeca81d5d1d4c671ef14782ba77f624f3b0852c7c7cc9dd63e8288f5a",
+        "STRESS:WIDER_SPREAD": "sha256:28ff1041f1c67401f98143da705160b08d558e37fe0b9487d5888f4ff9115e3c",
+        "STRESS:WIDER_SPREAD:VALIDATION": "sha256:36f9a6ac9be6cb47ab450d36b43b9ea1a9775a944b58496d3ad383bb73445912",
+        "STRESS_ASSUMPTIONS:ADDITIONAL_DELAY": "sha256:60ee5dfaf5c9404ff984f88baf0ca3180d545f12d27cd302f07d51c6d115c364",
+        "STRESS_ASSUMPTIONS:BASELINE": "sha256:bd89bc8e0ae0faf6b0592b808dfbee6848c69648559e2e748ac41df0f5100f8c",
+        "STRESS_ASSUMPTIONS:COMBINED_ADVERSE_COST": "sha256:e8a8934ef733454bfcda35f82e387203016de69ddf67b9095fbc1afc9bfa7853",
+        "STRESS_ASSUMPTIONS:HIGHER_FEE": "sha256:4f68bbb21a4224c70df9759eadd61a208399e8946dc3ecb69a5bdc1f54bdeb6b",
+        "STRESS_ASSUMPTIONS:HIGHER_SLIPPAGE": "sha256:1e20da460b4460a9858ef775602806b5c79fe755893b5cfa9d25431b65634c01",
+        "STRESS_ASSUMPTIONS:WIDER_SPREAD": "sha256:27d9800c77cb473e0a9a50804fbdf4983a36bc7dd732e50d91d66ac78c89b165",
+        "STRESS_PLAN": "sha256:cb67466ad599763e7fe915bd543dfec2a4115c52df4ab5b7e945d78a1a56aa36",
+        "WALK_FORWARD": "sha256:bc3faa6ad010534162c418f6c93522f4a9c99c8af6d11783c4376183edd41ba5",
+        "WALK_FORWARD_PLAN": "sha256:bac9018c2af5b64a755eda222176b9545fef8eff2bd4a95e90f14f3ca4bf1927"
+      }
+    },
+    "primary_oos": {
+      "validation_identity": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+      "backtest_identity": "sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83",
+      "metrics": {
+        "total_return": "0",
+        "gross_return": "0",
+        "net_return": "0",
+        "maximum_drawdown": "0",
+        "trade_count": 0,
+        "win_rate": null,
+        "loss_rate": null,
+        "profit_factor": null,
+        "average_win": null,
+        "average_loss": null,
+        "expectancy": null,
+        "exposure_percentage": "0",
+        "turnover": "0",
+        "total_fees": "0",
+        "total_spread_cost": "0",
+        "total_slippage_cost": "0"
+      }
+    },
+    "walk_forward": {
+      "validation_identity": "sha256:bc3faa6ad010534162c418f6c93522f4a9c99c8af6d11783c4376183edd41ba5",
+      "active_folds": 0,
+      "summary": {
+        "fold_count": 1,
+        "profitable_folds": 0,
+        "losing_folds": 0,
+        "breakeven_folds": 1,
+        "undefined_return_folds": 0,
+        "mean_net_return": "0",
+        "median_net_return": "0",
+        "worst_net_return": "0",
+        "best_net_return": "0",
+        "median_maximum_drawdown": "0",
+        "worst_maximum_drawdown": "0",
+        "defined_drawdown_folds": 1,
+        "total_completed_trades": 0,
+        "zero_trade_folds": 1,
+        "mean_expectancy": null,
+        "defined_expectancy_folds": 0,
+        "mean_profit_factor": null,
+        "defined_profit_factor_folds": 0,
+        "total_fees": "0",
+        "total_spread_cost": "0",
+        "total_slippage_cost": "0",
+        "return_sign_consistency": "ZERO"
+      },
+      "folds": [
+        {
+          "index": 0,
+          "boundaries": {
+            "warmup_start": "2025-01-01T00:00:00Z",
+            "in_sample_start": "2025-01-03T04:00:00Z",
+            "out_of_sample_start": "2025-01-03T06:00:00Z",
+            "end": "2025-01-03T12:00:00Z"
+          },
+          "fold_identity": "sha256:2a8b1a55c3809ee29d24f0014e90497aabbc984dfc9081519622aff43efd8ffe",
+          "validation_identity": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+          "backtest_identity": "sha256:5b54719966b6d0ad63e41300fc868540ea81471166ae35fb8d49fdfb4cec2f83",
+          "metrics": {
+            "total_return": "0",
+            "gross_return": "0",
+            "net_return": "0",
+            "maximum_drawdown": "0",
+            "trade_count": 0,
+            "win_rate": null,
+            "loss_rate": null,
+            "profit_factor": null,
+            "average_win": null,
+            "average_loss": null,
+            "expectancy": null,
+            "exposure_percentage": "0",
+            "turnover": "0",
+            "total_fees": "0",
+            "total_spread_cost": "0",
+            "total_slippage_cost": "0"
+          }
+        }
+      ]
+    },
+    "sensitivity": [
+      {
+        "configuration_identity": "sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5",
+        "validation_identity": "sha256:525448d0c30b9e8236cc3efd30167a5ab2bc0d6b38524b01b2fc693ec4f770b9",
+        "changed_fields": [
+          "entry_min_ema_spread"
+        ],
+        "changed_parameters": {
+          "entry_min_ema_spread": "0.0016"
+        },
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metrics": [
+              {
+                "metric": "total_return",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "net_return",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "maximum_drawdown",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "trade_count",
+                "baseline": 0,
+                "variant": 0,
+                "variant_minus_baseline": 0
+              },
+              {
+                "metric": "win_rate",
+                "baseline": null,
+                "variant": null,
+                "variant_minus_baseline": null
+              },
+              {
+                "metric": "profit_factor",
+                "baseline": null,
+                "variant": null,
+                "variant_minus_baseline": null
+              },
+              {
+                "metric": "expectancy",
+                "baseline": null,
+                "variant": null,
+                "variant_minus_baseline": null
+              },
+              {
+                "metric": "exposure_percentage",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "turnover",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "total_fees",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "total_spread_cost",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "total_slippage_cost",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              }
+            ],
+            "return_sign_changed": false
+          }
+        ]
+      },
+      {
+        "configuration_identity": "sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40",
+        "validation_identity": "sha256:6e7d06e70199ceade63fb9048df0240d8e4411e35b843c63925b83d0b96151f5",
+        "changed_fields": [
+          "entry_fast_slope"
+        ],
+        "changed_parameters": {
+          "entry_fast_slope": "0.00021"
+        },
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metrics": [
+              {
+                "metric": "total_return",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "net_return",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "maximum_drawdown",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "trade_count",
+                "baseline": 0,
+                "variant": 0,
+                "variant_minus_baseline": 0
+              },
+              {
+                "metric": "win_rate",
+                "baseline": null,
+                "variant": null,
+                "variant_minus_baseline": null
+              },
+              {
+                "metric": "profit_factor",
+                "baseline": null,
+                "variant": null,
+                "variant_minus_baseline": null
+              },
+              {
+                "metric": "expectancy",
+                "baseline": null,
+                "variant": null,
+                "variant_minus_baseline": null
+              },
+              {
+                "metric": "exposure_percentage",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "turnover",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "total_fees",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "total_spread_cost",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              },
+              {
+                "metric": "total_slippage_cost",
+                "baseline": "0",
+                "variant": "0",
+                "variant_minus_baseline": "0"
+              }
+            ],
+            "return_sign_changed": false
+          }
+        ]
+      }
+    ],
+    "sensitivity_baseline_configuration_identity": "sha256:8b63971c586e202e50172add5cd50b86c2fd0ee9cd84a30cda6d5f4d3d2ef92b",
+    "sensitivity_identity": "sha256:e20457486238fae46deebe50c5fbe6036a762332fffe03d2752572962a022396",
+    "benchmarks": [
+      {
+        "kind": "BUY_AND_HOLD",
+        "dataset_identity": "sha256:e1780095f7b49a04ed1942320888d7260e5d56277cd3b20d6940d81770ebcbca",
+        "window_identity": "sha256:9cba8abce6f35dc81402b4359da2ad018c5ec7beab04c9905e52a62c9806d40c",
+        "canonical_symbol": "BTC/USDT",
+        "quote_currency": "USDT",
+        "initial_capital": "10000",
+        "ending_equity": "9970.0698503093712674550997904291317464970159580938024124000",
+        "total_return": "-0.0029930149690628732544900209570868253502984041906198",
+        "maximum_drawdown": "0.0029930149690628732544900209570868253502984041906198",
+        "exposure_percentage": "100",
+        "turnover": "0.99900099900099900099900099900099900099900099900100",
+        "fees": "9.9900099900099900099900099900099900099900099900099876000",
+        "spread_cost": "9.9700698503093712674550997904291317464970159580938000",
+        "slippage_cost": "9.970069850309371267455099790429131746497015958093800",
+        "comparison_identity": "sha256:ed36fbcccaaa262edbbfc2537b1becba5987883e7f7e90683666081f80846c96",
+        "result_identity": "sha256:1309f1ed2e1c184f9e33477c7b692aeda647adfd20d2ed866e9c27b7da4fec3a",
+        "strategy_minus_benchmark": {
+          "exposure_percentage": "-100",
+          "maximum_drawdown": "-0.0029930149690628732544900209570868253502984041906198",
+          "total_cost": "-29.9301496906287325449002095708682535029840419061975876000",
+          "total_return": "0.0029930149690628732544900209570868253502984041906198",
+          "turnover": "-0.99900099900099900099900099900099900099900099900100"
+        }
+      },
+      {
+        "kind": "CASH",
+        "dataset_identity": "sha256:e1780095f7b49a04ed1942320888d7260e5d56277cd3b20d6940d81770ebcbca",
+        "window_identity": "sha256:9cba8abce6f35dc81402b4359da2ad018c5ec7beab04c9905e52a62c9806d40c",
+        "canonical_symbol": "BTC/USDT",
+        "quote_currency": "USDT",
+        "initial_capital": "10000",
+        "ending_equity": "10000",
+        "total_return": "0",
+        "maximum_drawdown": "0",
+        "exposure_percentage": "0",
+        "turnover": "0",
+        "fees": "0",
+        "spread_cost": "0",
+        "slippage_cost": "0",
+        "comparison_identity": "sha256:ca9753321c4667bd51118ce9d47822a621f1b40de28eaea44b23994052379add",
+        "result_identity": "sha256:4d7186c8ef0b7655b55de990154acb9a09a98a06e31bba1d9fd3a6ae195415ad",
+        "strategy_minus_benchmark": {
+          "exposure_percentage": "0",
+          "maximum_drawdown": "0",
+          "total_cost": "0",
+          "total_return": "0",
+          "turnover": "0"
+        }
+      }
+    ],
+    "stress": [
+      {
+        "code": "ADDITIONAL_DELAY",
+        "scenario_identity": "sha256:60ee5dfaf5c9404ff984f88baf0ca3180d545f12d27cd302f07d51c6d115c364",
+        "assumptions": {
+          "fee_rate": "0.001",
+          "full_spread_rate": "0.002",
+          "slippage_rate": "0.001",
+          "delay_candles": 1,
+          "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+          "cost_model_identity": "sha256:fd254706e7c2cf78c5cd36ce32e96547f1868a63ffb20e8973f4c24118bf8dea",
+          "execution_configuration_identity": "sha256:a0dab40731f7edbe77719e50028d2a5e98dec939b66b734722e90c786971f0d9"
+        },
+        "validation_identity": "sha256:09bf0799c4985ff231ccc7327fc3a782c65c7809eb819cce90dd8760141fe2ec",
+        "result_identity": "sha256:d1d9e5d9586ca415702f1c0012459520c5a644ec920b75bb2742366c8b233a25",
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metric_changes": [
+              [
+                "total_return",
+                "0"
+              ],
+              [
+                "net_return",
+                "0"
+              ],
+              [
+                "maximum_drawdown",
+                "0"
+              ],
+              [
+                "trade_count",
+                0
+              ],
+              [
+                "win_rate",
+                null
+              ],
+              [
+                "profit_factor",
+                null
+              ],
+              [
+                "expectancy",
+                null
+              ],
+              [
+                "exposure_percentage",
+                "0"
+              ],
+              [
+                "turnover",
+                "0"
+              ],
+              [
+                "total_fees",
+                "0"
+              ],
+              [
+                "total_spread_cost",
+                "0"
+              ],
+              [
+                "total_slippage_cost",
+                "0"
+              ]
+            ],
+            "total_cost_change": "0",
+            "return_sign_changed": false
+          }
+        ],
+        "execution_failure": null,
+        "failure_source_identity": null
+      },
+      {
+        "code": "BASELINE",
+        "scenario_identity": "sha256:bd89bc8e0ae0faf6b0592b808dfbee6848c69648559e2e748ac41df0f5100f8c",
+        "assumptions": {
+          "fee_rate": "0.001",
+          "full_spread_rate": "0.002",
+          "slippage_rate": "0.001",
+          "delay_candles": 0,
+          "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+          "cost_model_identity": "sha256:16ba526870807a12c15b8d9fb16c8c464cef8a4aa12b80644fcae82667bad799",
+          "execution_configuration_identity": "sha256:2995a4c27b97b58984ad3b80c4ef43049173782e8b38ae3cbe1ab5339e7d6cab"
+        },
+        "validation_identity": "sha256:f3a2e598fc8e9227d90dc87072400925f3c7cf1d505a782c3a9e55cf3a9510c1",
+        "result_identity": "sha256:84e539ef0c19f59ff1bbecda0d76eebce068f9b170e31538053e69493c45fe44",
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metric_changes": [
+              [
+                "total_return",
+                "0"
+              ],
+              [
+                "net_return",
+                "0"
+              ],
+              [
+                "maximum_drawdown",
+                "0"
+              ],
+              [
+                "trade_count",
+                0
+              ],
+              [
+                "win_rate",
+                null
+              ],
+              [
+                "profit_factor",
+                null
+              ],
+              [
+                "expectancy",
+                null
+              ],
+              [
+                "exposure_percentage",
+                "0"
+              ],
+              [
+                "turnover",
+                "0"
+              ],
+              [
+                "total_fees",
+                "0"
+              ],
+              [
+                "total_spread_cost",
+                "0"
+              ],
+              [
+                "total_slippage_cost",
+                "0"
+              ]
+            ],
+            "total_cost_change": "0",
+            "return_sign_changed": false
+          }
+        ],
+        "execution_failure": null,
+        "failure_source_identity": null
+      },
+      {
+        "code": "COMBINED_ADVERSE_COST",
+        "scenario_identity": "sha256:e8a8934ef733454bfcda35f82e387203016de69ddf67b9095fbc1afc9bfa7853",
+        "assumptions": {
+          "fee_rate": "0.002",
+          "full_spread_rate": "0.004",
+          "slippage_rate": "0.002",
+          "delay_candles": 0,
+          "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+          "cost_model_identity": "sha256:406f1c8465a579aaf9010260f8ce965195da9f8871bd3c951f77a8f403635d32",
+          "execution_configuration_identity": "sha256:c3adf64fdd6c0f196c053bc040155b619a0b931ab03a7172925441e3f5f32be2"
+        },
+        "validation_identity": "sha256:b0de671ee2a114bf9bc4cb58c84fcce014b97c42fa6c9105c1c513185978939a",
+        "result_identity": "sha256:b40f4d3263ba0c85f5c2d8844e91a676f4fdd6f2af17756d496165ccb4b0f57f",
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metric_changes": [
+              [
+                "total_return",
+                "0"
+              ],
+              [
+                "net_return",
+                "0"
+              ],
+              [
+                "maximum_drawdown",
+                "0"
+              ],
+              [
+                "trade_count",
+                0
+              ],
+              [
+                "win_rate",
+                null
+              ],
+              [
+                "profit_factor",
+                null
+              ],
+              [
+                "expectancy",
+                null
+              ],
+              [
+                "exposure_percentage",
+                "0"
+              ],
+              [
+                "turnover",
+                "0"
+              ],
+              [
+                "total_fees",
+                "0"
+              ],
+              [
+                "total_spread_cost",
+                "0"
+              ],
+              [
+                "total_slippage_cost",
+                "0"
+              ]
+            ],
+            "total_cost_change": "0",
+            "return_sign_changed": false
+          }
+        ],
+        "execution_failure": null,
+        "failure_source_identity": null
+      },
+      {
+        "code": "HIGHER_FEE",
+        "scenario_identity": "sha256:4f68bbb21a4224c70df9759eadd61a208399e8946dc3ecb69a5bdc1f54bdeb6b",
+        "assumptions": {
+          "fee_rate": "0.002",
+          "full_spread_rate": "0.002",
+          "slippage_rate": "0.001",
+          "delay_candles": 0,
+          "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+          "cost_model_identity": "sha256:183d8e48f09070fc4f6a409151d35a6286fb19f963b2cfb8c08750c9d1532a8e",
+          "execution_configuration_identity": "sha256:535fe64e8b8f45e871c55beb95422af2a10fdb277feee5bc15254699e0a49744"
+        },
+        "validation_identity": "sha256:9364f3a7d5dd1e3704a4d4c9317073664edccb202bd6cfdd4ae7ee97ecc91315",
+        "result_identity": "sha256:311594a43f93501628c24e5197839a134cf5ee48227488eda040adc6148bbb14",
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metric_changes": [
+              [
+                "total_return",
+                "0"
+              ],
+              [
+                "net_return",
+                "0"
+              ],
+              [
+                "maximum_drawdown",
+                "0"
+              ],
+              [
+                "trade_count",
+                0
+              ],
+              [
+                "win_rate",
+                null
+              ],
+              [
+                "profit_factor",
+                null
+              ],
+              [
+                "expectancy",
+                null
+              ],
+              [
+                "exposure_percentage",
+                "0"
+              ],
+              [
+                "turnover",
+                "0"
+              ],
+              [
+                "total_fees",
+                "0"
+              ],
+              [
+                "total_spread_cost",
+                "0"
+              ],
+              [
+                "total_slippage_cost",
+                "0"
+              ]
+            ],
+            "total_cost_change": "0",
+            "return_sign_changed": false
+          }
+        ],
+        "execution_failure": null,
+        "failure_source_identity": null
+      },
+      {
+        "code": "HIGHER_SLIPPAGE",
+        "scenario_identity": "sha256:1e20da460b4460a9858ef775602806b5c79fe755893b5cfa9d25431b65634c01",
+        "assumptions": {
+          "fee_rate": "0.001",
+          "full_spread_rate": "0.002",
+          "slippage_rate": "0.002",
+          "delay_candles": 0,
+          "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+          "cost_model_identity": "sha256:5e50d3cdd475939ad481f54e2c002c3faaf2b62ff2004bf5e176dd71c222ccf2",
+          "execution_configuration_identity": "sha256:72c002e4ca99f2e800df42d20808be7ea3898c37b296a1945ef894e19db24850"
+        },
+        "validation_identity": "sha256:e9e6d28aeca81d5d1d4c671ef14782ba77f624f3b0852c7c7cc9dd63e8288f5a",
+        "result_identity": "sha256:3480162616c7828d3445535433e4d0334508a4b16186a0495c804c7c70e823cd",
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metric_changes": [
+              [
+                "total_return",
+                "0"
+              ],
+              [
+                "net_return",
+                "0"
+              ],
+              [
+                "maximum_drawdown",
+                "0"
+              ],
+              [
+                "trade_count",
+                0
+              ],
+              [
+                "win_rate",
+                null
+              ],
+              [
+                "profit_factor",
+                null
+              ],
+              [
+                "expectancy",
+                null
+              ],
+              [
+                "exposure_percentage",
+                "0"
+              ],
+              [
+                "turnover",
+                "0"
+              ],
+              [
+                "total_fees",
+                "0"
+              ],
+              [
+                "total_spread_cost",
+                "0"
+              ],
+              [
+                "total_slippage_cost",
+                "0"
+              ]
+            ],
+            "total_cost_change": "0",
+            "return_sign_changed": false
+          }
+        ],
+        "execution_failure": null,
+        "failure_source_identity": null
+      },
+      {
+        "code": "WIDER_SPREAD",
+        "scenario_identity": "sha256:27d9800c77cb473e0a9a50804fbdf4983a36bc7dd732e50d91d66ac78c89b165",
+        "assumptions": {
+          "fee_rate": "0.001",
+          "full_spread_rate": "0.004",
+          "slippage_rate": "0.001",
+          "delay_candles": 0,
+          "timing": "NEXT_COMPLETED_CANDLE_OPEN",
+          "cost_model_identity": "sha256:421b9fa6dbfa1584c351616970fd1820410356b002bab0b7ffaa8024e96d2c7f",
+          "execution_configuration_identity": "sha256:e473bc2af1ce81b796722c0b4f0bda233154be6e784b4d8f748991ef767fbbcb"
+        },
+        "validation_identity": "sha256:36f9a6ac9be6cb47ab450d36b43b9ea1a9775a944b58496d3ad383bb73445912",
+        "result_identity": "sha256:28ff1041f1c67401f98143da705160b08d558e37fe0b9487d5888f4ff9115e3c",
+        "metrics": {
+          "total_return": "0",
+          "gross_return": "0",
+          "net_return": "0",
+          "maximum_drawdown": "0",
+          "trade_count": 0,
+          "win_rate": null,
+          "loss_rate": null,
+          "profit_factor": null,
+          "average_win": null,
+          "average_loss": null,
+          "expectancy": null,
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "total_fees": "0",
+          "total_spread_cost": "0",
+          "total_slippage_cost": "0"
+        },
+        "differences": [
+          {
+            "fold_index": 0,
+            "metric_changes": [
+              [
+                "total_return",
+                "0"
+              ],
+              [
+                "net_return",
+                "0"
+              ],
+              [
+                "maximum_drawdown",
+                "0"
+              ],
+              [
+                "trade_count",
+                0
+              ],
+              [
+                "win_rate",
+                null
+              ],
+              [
+                "profit_factor",
+                null
+              ],
+              [
+                "expectancy",
+                null
+              ],
+              [
+                "exposure_percentage",
+                "0"
+              ],
+              [
+                "turnover",
+                "0"
+              ],
+              [
+                "total_fees",
+                "0"
+              ],
+              [
+                "total_spread_cost",
+                "0"
+              ],
+              [
+                "total_slippage_cost",
+                "0"
+              ]
+            ],
+            "total_cost_change": "0",
+            "return_sign_changed": false
+          }
+        ],
+        "execution_failure": null,
+        "failure_source_identity": null
+      }
+    ],
+    "stress_evidence_identity": "sha256:9e4a24cff6ebfef7787ac44c80e5c0e097504f2b841eed717d8295495fe0cd56",
+    "criteria": [
+      {
+        "code": "ACTIVE_FOLDS",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 3,
+        "status": "INSUFFICIENT",
+        "reason_code": "ACTIVE_FOLDS_INSUFFICIENT",
+        "explanation": "ACTIVE_FOLDS: observed 0; declared requirement >= 3. Coverage requirement."
+      },
+      {
+        "code": "BENCHMARK_BUY_AND_HOLD_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "BENCHMARK_BUY_AND_HOLD_COVERAGE_MET",
+        "explanation": "BENCHMARK_BUY_AND_HOLD_COVERAGE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "BENCHMARK_BUY_AND_HOLD_EXCESS_RETURN",
+        "category": "BENCHMARK_CONTEXT",
+        "observed": "0.0029930149690628732544900209570868253502984041906198",
+        "required": "0",
+        "status": "NOT_APPLICABLE",
+        "reason_code": "BENCHMARK_BUY_AND_HOLD_EXCESS_RETURN_INFORMATIONAL",
+        "explanation": "BENCHMARK_BUY_AND_HOLD_EXCESS_RETURN: observed 29930149690628732544900209570868253502984041906198e-52; declared requirement >= 0e0. Research-policy hypothesis. Informational only; does not gate this verdict."
+      },
+      {
+        "code": "BENCHMARK_BUY_AND_HOLD_METRIC",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "BENCHMARK_BUY_AND_HOLD_METRIC_MET",
+        "explanation": "BENCHMARK_BUY_AND_HOLD_METRIC: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "BENCHMARK_CASH_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "BENCHMARK_CASH_COVERAGE_MET",
+        "explanation": "BENCHMARK_CASH_COVERAGE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "BENCHMARK_CASH_EXCESS_RETURN",
+        "category": "BENCHMARK_CONTEXT",
+        "observed": "0",
+        "required": "0",
+        "status": "NOT_APPLICABLE",
+        "reason_code": "BENCHMARK_CASH_EXCESS_RETURN_INFORMATIONAL",
+        "explanation": "BENCHMARK_CASH_EXCESS_RETURN: observed 0e0; declared requirement >= 0e0. Research-policy hypothesis. Informational only; does not gate this verdict."
+      },
+      {
+        "code": "BENCHMARK_CASH_METRIC",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "BENCHMARK_CASH_METRIC_MET",
+        "explanation": "BENCHMARK_CASH_METRIC: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "FOLD_METRIC_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "FOLD_METRIC_COVERAGE_MET",
+        "explanation": "FOLD_METRIC_COVERAGE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "NON_LOSING_ACTIVE_FOLDS",
+        "category": "WALK_FORWARD_CONSISTENCY",
+        "observed": null,
+        "required": "0.67",
+        "status": "INSUFFICIENT",
+        "reason_code": "NON_LOSING_ACTIVE_FOLDS_UNDEFINED_OR_MISSING",
+        "explanation": "NON_LOSING_ACTIVE_FOLDS: observed None; declared requirement >= 67e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "OOS_COMPLETED_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 30,
+        "status": "INSUFFICIENT",
+        "reason_code": "OOS_COMPLETED_TRADES_INSUFFICIENT",
+        "explanation": "OOS_COMPLETED_TRADES: observed 0; declared requirement >= 30. Coverage requirement."
+      },
+      {
+        "code": "OOS_DRAWDOWN",
+        "category": "DRAWDOWN_CONTROL",
+        "observed": "0",
+        "required": "0.20",
+        "status": "PASS",
+        "reason_code": "OOS_DRAWDOWN_MET",
+        "explanation": "OOS_DRAWDOWN: observed 0e0; declared requirement <= 2e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "OOS_EXPECTANCY",
+        "category": "RETURN_QUALITY",
+        "observed": null,
+        "required": "0",
+        "status": "INSUFFICIENT",
+        "reason_code": "OOS_EXPECTANCY_UNDEFINED_OR_MISSING",
+        "explanation": "OOS_EXPECTANCY: observed None; declared requirement >= 0e0. Research-policy hypothesis."
+      },
+      {
+        "code": "OOS_PROFIT_FACTOR",
+        "category": "RETURN_QUALITY",
+        "observed": null,
+        "required": "1.10",
+        "status": "INSUFFICIENT",
+        "reason_code": "OOS_PROFIT_FACTOR_UNDEFINED_OR_MISSING",
+        "explanation": "OOS_PROFIT_FACTOR: observed None; declared requirement >= 11e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "SENSITIVITY_DECLARED_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 2,
+        "required": 2,
+        "status": "SUFFICIENT",
+        "reason_code": "SENSITIVITY_DECLARED_COVERAGE_MET",
+        "explanation": "SENSITIVITY_DECLARED_COVERAGE: observed 2; declared requirement >= 2. Coverage requirement."
+      },
+      {
+        "code": "SENSITIVITY_FOLD_COVERAGE_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "SENSITIVITY_FOLD_COVERAGE_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_MET",
+        "explanation": "SENSITIVITY_FOLD_COVERAGE_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "SENSITIVITY_FOLD_COVERAGE_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "SENSITIVITY_FOLD_COVERAGE_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_MET",
+        "explanation": "SENSITIVITY_FOLD_COVERAGE_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "SENSITIVITY_VARIANTS",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 2,
+        "required": 2,
+        "status": "SUFFICIENT",
+        "reason_code": "SENSITIVITY_VARIANTS_MET",
+        "explanation": "SENSITIVITY_VARIANTS: observed 2; declared requirement >= 2. Coverage requirement."
+      },
+      {
+        "code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_DEGRADATION",
+        "category": "PARAMETER_STABILITY",
+        "observed": "0",
+        "required": "0.02",
+        "status": "PASS",
+        "reason_code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_DEGRADATION_MET",
+        "explanation": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 2e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_SIGN_CHANGE",
+        "category": "PARAMETER_STABILITY",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADES_INSUFFICIENT",
+        "explanation": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADE_RETENTION",
+        "category": "PARAMETER_STABILITY",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_DEGRADATION",
+        "category": "PARAMETER_STABILITY",
+        "observed": "0",
+        "required": "0.02",
+        "status": "PASS",
+        "reason_code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_DEGRADATION_MET",
+        "explanation": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 2e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_SIGN_CHANGE",
+        "category": "PARAMETER_STABILITY",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADES_INSUFFICIENT",
+        "explanation": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADE_RETENTION",
+        "category": "PARAMETER_STABILITY",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_ADDITIONAL_DELAY_0_RETURN_DEGRADATION",
+        "category": "COST_RESILIENCE",
+        "observed": "0",
+        "required": "0.03",
+        "status": "PASS",
+        "reason_code": "STRESS_ADDITIONAL_DELAY_0_RETURN_DEGRADATION_MET",
+        "explanation": "STRESS_ADDITIONAL_DELAY_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 3e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_ADDITIONAL_DELAY_0_RETURN_SIGN_CHANGE",
+        "category": "COST_RESILIENCE",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "STRESS_ADDITIONAL_DELAY_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "STRESS_ADDITIONAL_DELAY_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_ADDITIONAL_DELAY_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_ADDITIONAL_DELAY_0_TRADES_INSUFFICIENT",
+        "explanation": "STRESS_ADDITIONAL_DELAY_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "STRESS_ADDITIONAL_DELAY_0_TRADE_RETENTION",
+        "category": "COST_RESILIENCE",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_ADDITIONAL_DELAY_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "STRESS_ADDITIONAL_DELAY_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_BASELINE_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_BASELINE_COVERAGE_MET",
+        "explanation": "STRESS_BASELINE_COVERAGE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "STRESS_COMBINED_ADVERSE_COST_0_RETURN_DEGRADATION",
+        "category": "COST_RESILIENCE",
+        "observed": "0",
+        "required": "0.03",
+        "status": "PASS",
+        "reason_code": "STRESS_COMBINED_ADVERSE_COST_0_RETURN_DEGRADATION_MET",
+        "explanation": "STRESS_COMBINED_ADVERSE_COST_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 3e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_COMBINED_ADVERSE_COST_0_RETURN_SIGN_CHANGE",
+        "category": "COST_RESILIENCE",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "STRESS_COMBINED_ADVERSE_COST_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "STRESS_COMBINED_ADVERSE_COST_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_COMBINED_ADVERSE_COST_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_COMBINED_ADVERSE_COST_0_TRADES_INSUFFICIENT",
+        "explanation": "STRESS_COMBINED_ADVERSE_COST_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "STRESS_COMBINED_ADVERSE_COST_0_TRADE_RETENTION",
+        "category": "COST_RESILIENCE",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_COMBINED_ADVERSE_COST_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "STRESS_COMBINED_ADVERSE_COST_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_DECLARED_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 6,
+        "required": 6,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_DECLARED_COVERAGE_MET",
+        "explanation": "STRESS_DECLARED_COVERAGE: observed 6; declared requirement >= 6. Coverage requirement."
+      },
+      {
+        "code": "STRESS_FOLD_COVERAGE_ADDITIONAL_DELAY",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_FOLD_COVERAGE_ADDITIONAL_DELAY_MET",
+        "explanation": "STRESS_FOLD_COVERAGE_ADDITIONAL_DELAY: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "STRESS_FOLD_COVERAGE_COMBINED_ADVERSE_COST",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_FOLD_COVERAGE_COMBINED_ADVERSE_COST_MET",
+        "explanation": "STRESS_FOLD_COVERAGE_COMBINED_ADVERSE_COST: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "STRESS_FOLD_COVERAGE_HIGHER_FEE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_FOLD_COVERAGE_HIGHER_FEE_MET",
+        "explanation": "STRESS_FOLD_COVERAGE_HIGHER_FEE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "STRESS_FOLD_COVERAGE_HIGHER_SLIPPAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_FOLD_COVERAGE_HIGHER_SLIPPAGE_MET",
+        "explanation": "STRESS_FOLD_COVERAGE_HIGHER_SLIPPAGE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "STRESS_FOLD_COVERAGE_WIDER_SPREAD",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_FOLD_COVERAGE_WIDER_SPREAD_MET",
+        "explanation": "STRESS_FOLD_COVERAGE_WIDER_SPREAD: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "STRESS_HIGHER_FEE_0_RETURN_DEGRADATION",
+        "category": "COST_RESILIENCE",
+        "observed": "0",
+        "required": "0.03",
+        "status": "PASS",
+        "reason_code": "STRESS_HIGHER_FEE_0_RETURN_DEGRADATION_MET",
+        "explanation": "STRESS_HIGHER_FEE_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 3e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_HIGHER_FEE_0_RETURN_SIGN_CHANGE",
+        "category": "COST_RESILIENCE",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "STRESS_HIGHER_FEE_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "STRESS_HIGHER_FEE_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_HIGHER_FEE_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_HIGHER_FEE_0_TRADES_INSUFFICIENT",
+        "explanation": "STRESS_HIGHER_FEE_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "STRESS_HIGHER_FEE_0_TRADE_RETENTION",
+        "category": "COST_RESILIENCE",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_HIGHER_FEE_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "STRESS_HIGHER_FEE_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_HIGHER_SLIPPAGE_0_RETURN_DEGRADATION",
+        "category": "COST_RESILIENCE",
+        "observed": "0",
+        "required": "0.03",
+        "status": "PASS",
+        "reason_code": "STRESS_HIGHER_SLIPPAGE_0_RETURN_DEGRADATION_MET",
+        "explanation": "STRESS_HIGHER_SLIPPAGE_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 3e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_HIGHER_SLIPPAGE_0_RETURN_SIGN_CHANGE",
+        "category": "COST_RESILIENCE",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "STRESS_HIGHER_SLIPPAGE_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "STRESS_HIGHER_SLIPPAGE_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_HIGHER_SLIPPAGE_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_HIGHER_SLIPPAGE_0_TRADES_INSUFFICIENT",
+        "explanation": "STRESS_HIGHER_SLIPPAGE_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "STRESS_HIGHER_SLIPPAGE_0_TRADE_RETENTION",
+        "category": "COST_RESILIENCE",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_HIGHER_SLIPPAGE_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "STRESS_HIGHER_SLIPPAGE_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_SCENARIOS",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 6,
+        "required": 4,
+        "status": "SUFFICIENT",
+        "reason_code": "STRESS_SCENARIOS_MET",
+        "explanation": "STRESS_SCENARIOS: observed 6; declared requirement >= 4. Coverage requirement."
+      },
+      {
+        "code": "STRESS_WIDER_SPREAD_0_RETURN_DEGRADATION",
+        "category": "COST_RESILIENCE",
+        "observed": "0",
+        "required": "0.03",
+        "status": "PASS",
+        "reason_code": "STRESS_WIDER_SPREAD_0_RETURN_DEGRADATION_MET",
+        "explanation": "STRESS_WIDER_SPREAD_0_RETURN_DEGRADATION: observed 0e0; declared requirement <= 3e-2. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_WIDER_SPREAD_0_RETURN_SIGN_CHANGE",
+        "category": "COST_RESILIENCE",
+        "observed": false,
+        "required": false,
+        "status": "PASS",
+        "reason_code": "STRESS_WIDER_SPREAD_0_RETURN_SIGN_CHANGE_MET",
+        "explanation": "STRESS_WIDER_SPREAD_0_RETURN_SIGN_CHANGE: observed False; declared requirement <= False. Research-policy hypothesis."
+      },
+      {
+        "code": "STRESS_WIDER_SPREAD_0_TRADES",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 0,
+        "required": 10,
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_WIDER_SPREAD_0_TRADES_INSUFFICIENT",
+        "explanation": "STRESS_WIDER_SPREAD_0_TRADES: observed 0; declared requirement >= 10. Coverage requirement."
+      },
+      {
+        "code": "STRESS_WIDER_SPREAD_0_TRADE_RETENTION",
+        "category": "COST_RESILIENCE",
+        "observed": null,
+        "required": "0.50",
+        "status": "INSUFFICIENT",
+        "reason_code": "STRESS_WIDER_SPREAD_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "explanation": "STRESS_WIDER_SPREAD_0_TRADE_RETENTION: observed None; declared requirement >= 5e-1. Research-policy hypothesis."
+      },
+      {
+        "code": "WALK_FORWARD_DECLARED_COVERAGE",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 1,
+        "status": "SUFFICIENT",
+        "reason_code": "WALK_FORWARD_DECLARED_COVERAGE_MET",
+        "explanation": "WALK_FORWARD_DECLARED_COVERAGE: observed 1; declared requirement >= 1. Coverage requirement."
+      },
+      {
+        "code": "WALK_FORWARD_FOLDS",
+        "category": "EVIDENCE_COVERAGE",
+        "observed": 1,
+        "required": 3,
+        "status": "INSUFFICIENT",
+        "reason_code": "WALK_FORWARD_FOLDS_INSUFFICIENT",
+        "explanation": "WALK_FORWARD_FOLDS: observed 1; declared requirement >= 3. Coverage requirement."
+      },
+      {
+        "code": "WORST_FOLD_DRAWDOWN",
+        "category": "DRAWDOWN_CONTROL",
+        "observed": "0",
+        "required": "0.25",
+        "status": "PASS",
+        "reason_code": "WORST_FOLD_DRAWDOWN_MET",
+        "explanation": "WORST_FOLD_DRAWDOWN: observed 0e0; declared requirement <= 25e-2. Research-policy hypothesis."
+      }
+    ],
+    "verdict_explanation": {
+      "insufficiency_reasons": [
+        "ACTIVE_FOLDS_INSUFFICIENT",
+        "NON_LOSING_ACTIVE_FOLDS_UNDEFINED_OR_MISSING",
+        "OOS_COMPLETED_TRADES_INSUFFICIENT",
+        "OOS_EXPECTANCY_UNDEFINED_OR_MISSING",
+        "OOS_PROFIT_FACTOR_UNDEFINED_OR_MISSING",
+        "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADES_INSUFFICIENT",
+        "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADES_INSUFFICIENT",
+        "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "STRESS_ADDITIONAL_DELAY_0_TRADES_INSUFFICIENT",
+        "STRESS_ADDITIONAL_DELAY_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "STRESS_COMBINED_ADVERSE_COST_0_TRADES_INSUFFICIENT",
+        "STRESS_COMBINED_ADVERSE_COST_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "STRESS_HIGHER_FEE_0_TRADES_INSUFFICIENT",
+        "STRESS_HIGHER_FEE_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "STRESS_HIGHER_SLIPPAGE_0_TRADES_INSUFFICIENT",
+        "STRESS_HIGHER_SLIPPAGE_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "STRESS_WIDER_SPREAD_0_TRADES_INSUFFICIENT",
+        "STRESS_WIDER_SPREAD_0_TRADE_RETENTION_UNDEFINED_OR_MISSING",
+        "WALK_FORWARD_FOLDS_INSUFFICIENT"
+      ],
+      "failure_reasons": [],
+      "passed_criteria": [
+        "OOS_DRAWDOWN",
+        "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_DEGRADATION",
+        "SENSITIVITY_sha256:40fd43b033eb2c9f050a7bf20cb2d7b75ea917a5c62e2605136d46e825542cd5_0_RETURN_SIGN_CHANGE",
+        "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_DEGRADATION",
+        "SENSITIVITY_sha256:bf1719ee3d3331a86be7b072adcff84fb2841f952a1130b6925e44670ddc2f40_0_RETURN_SIGN_CHANGE",
+        "STRESS_ADDITIONAL_DELAY_0_RETURN_DEGRADATION",
+        "STRESS_ADDITIONAL_DELAY_0_RETURN_SIGN_CHANGE",
+        "STRESS_COMBINED_ADVERSE_COST_0_RETURN_DEGRADATION",
+        "STRESS_COMBINED_ADVERSE_COST_0_RETURN_SIGN_CHANGE",
+        "STRESS_HIGHER_FEE_0_RETURN_DEGRADATION",
+        "STRESS_HIGHER_FEE_0_RETURN_SIGN_CHANGE",
+        "STRESS_HIGHER_SLIPPAGE_0_RETURN_DEGRADATION",
+        "STRESS_HIGHER_SLIPPAGE_0_RETURN_SIGN_CHANGE",
+        "STRESS_WIDER_SPREAD_0_RETURN_DEGRADATION",
+        "STRESS_WIDER_SPREAD_0_RETURN_SIGN_CHANGE",
+        "WORST_FOLD_DRAWDOWN"
+      ],
+      "benchmark_context": [
+        {
+          "kind": "BUY_AND_HOLD",
+          "dataset_identity": "sha256:e1780095f7b49a04ed1942320888d7260e5d56277cd3b20d6940d81770ebcbca",
+          "window_identity": "sha256:9cba8abce6f35dc81402b4359da2ad018c5ec7beab04c9905e52a62c9806d40c",
+          "canonical_symbol": "BTC/USDT",
+          "quote_currency": "USDT",
+          "initial_capital": "10000",
+          "ending_equity": "9970.0698503093712674550997904291317464970159580938024124000",
+          "total_return": "-0.0029930149690628732544900209570868253502984041906198",
+          "maximum_drawdown": "0.0029930149690628732544900209570868253502984041906198",
+          "exposure_percentage": "100",
+          "turnover": "0.99900099900099900099900099900099900099900099900100",
+          "fees": "9.9900099900099900099900099900099900099900099900099876000",
+          "spread_cost": "9.9700698503093712674550997904291317464970159580938000",
+          "slippage_cost": "9.970069850309371267455099790429131746497015958093800",
+          "comparison_identity": "sha256:ed36fbcccaaa262edbbfc2537b1becba5987883e7f7e90683666081f80846c96",
+          "result_identity": "sha256:1309f1ed2e1c184f9e33477c7b692aeda647adfd20d2ed866e9c27b7da4fec3a",
+          "strategy_minus_benchmark": {
+            "exposure_percentage": "-100",
+            "maximum_drawdown": "-0.0029930149690628732544900209570868253502984041906198",
+            "total_cost": "-29.9301496906287325449002095708682535029840419061975876000",
+            "total_return": "0.0029930149690628732544900209570868253502984041906198",
+            "turnover": "-0.99900099900099900099900099900099900099900099900100"
+          }
+        },
+        {
+          "kind": "CASH",
+          "dataset_identity": "sha256:e1780095f7b49a04ed1942320888d7260e5d56277cd3b20d6940d81770ebcbca",
+          "window_identity": "sha256:9cba8abce6f35dc81402b4359da2ad018c5ec7beab04c9905e52a62c9806d40c",
+          "canonical_symbol": "BTC/USDT",
+          "quote_currency": "USDT",
+          "initial_capital": "10000",
+          "ending_equity": "10000",
+          "total_return": "0",
+          "maximum_drawdown": "0",
+          "exposure_percentage": "0",
+          "turnover": "0",
+          "fees": "0",
+          "spread_cost": "0",
+          "slippage_cost": "0",
+          "comparison_identity": "sha256:ca9753321c4667bd51118ce9d47822a621f1b40de28eaea44b23994052379add",
+          "result_identity": "sha256:4d7186c8ef0b7655b55de990154acb9a09a98a06e31bba1d9fd3a6ae195415ad",
+          "strategy_minus_benchmark": {
+            "exposure_percentage": "0",
+            "maximum_drawdown": "0",
+            "total_cost": "0",
+            "total_return": "0",
+            "turnover": "0"
+          }
+        }
+      ]
+    }
+  }
+}

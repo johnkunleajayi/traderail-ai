@@ -6,6 +6,7 @@ import ThemeToggle from './ThemeToggle'
 import PaperPortfolioSummary from './PaperPortfolioSummary'
 import MarketsSection from './MarketsSection'
 const MarketHistory = lazy(() => import('./MarketHistory'))
+const StrategyLab = lazy(() => import('../strategy-lab/StrategyLab'))
 import { Card, SectionLabel } from './ui'
 
 export default function AuthExperience({ children }: { children: ReactNode }) {
@@ -14,7 +15,9 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
   const [error, setError] = useState('')
   const [signingOut, setSigningOut] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const clearUser = useCallback(() => setUser(null), [])
+  const [view, setView] = useState<'workspace' | 'lab'>('workspace')
+  const [labOpened, setLabOpened] = useState(false)
+  const clearUser = useCallback(() => { setUser(null); setView('workspace'); setLabOpened(false) }, [])
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
@@ -36,7 +39,7 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
   async function signOut() {
     setSigningOut(true)
     setError('')
-    try { await logout(); setUser(null) }
+    try { await logout(); clearUser() }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Sign-out failed.') }
     finally { setSigningOut(false) }
   }
@@ -49,10 +52,14 @@ export default function AuthExperience({ children }: { children: ReactNode }) {
       <SectionLabel>YOUR TRADERAIL WORKSPACE</SectionLabel>
       <div className="workspace-heading"><div><h1>Welcome, {user.name}.</h1><p>Systematic trading. Engineered for control.</p></div><span className="workspace-badge"><ShieldCheck size={15}/> Signed in with Google</span></div>
       {error && <p className="auth-notice" role="alert">{error}</p>}
+      <nav className="workspace-nav" aria-label="Workspace navigation"><button aria-current={view === 'workspace' ? 'page' : undefined} onClick={() => setView('workspace')}>Workspace</button><button aria-current={view === 'lab' ? 'page' : undefined} onClick={() => { setLabOpened(true); setView('lab') }}>Strategy Lab</button></nav>
+      <div hidden={view !== 'workspace'}>
       <Card className="profile-card"><div className="user-avatar">{user.avatar_url ? <img src={user.avatar_url} alt="" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = 'none' }}/>: <UserRound size={26}/>}</div><div><h2>{user.name}</h2><p>{user.email}</p></div></Card>
       <PaperPortfolioSummary onSessionExpired={clearUser}/>
       <MarketsSection/>
       <Suspense fallback={<p className="history-caption" role="status">Loading Market History…</p>}><MarketHistory/></Suspense>
+      </div>
+      {labOpened && <div hidden={view !== 'lab'}><Suspense fallback={<p role="status">Loading Strategy Lab…</p>}><StrategyLab onSessionExpired={clearUser}/></Suspense></div>}
     </main>
   </div>
 }
