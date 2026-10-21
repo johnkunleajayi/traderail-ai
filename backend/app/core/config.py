@@ -1,4 +1,5 @@
 from functools import lru_cache
+from uuid import UUID
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -9,6 +10,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="TRADERAIL_", extra="ignore", hide_input_in_errors=True)
     app_name: str = "TradeRail"
+    # Explicit operator grants; empty by default. Never accepted from HTTP requests.
+    risk_inspector_user_ids: frozenset[UUID] = Field(default_factory=frozenset)
     database_url: PostgresDsn = "postgresql+psycopg://traderail:traderail@localhost:5432/traderail"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
     google_client_id: str = ""
