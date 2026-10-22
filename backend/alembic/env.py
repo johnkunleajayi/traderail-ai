@@ -2,6 +2,8 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 from app.core.config import get_settings
 from app.db.base import Base
+from app.execution.persistence import models as execution_models  # noqa: F401
+from app.execution.paper import models as paper_execution_models  # noqa: F401
 from app.market_data.models import MarketCandle  # noqa: F401
 from app.venues.models import Venue, VenueInstrumentMapping  # noqa: F401
 from app.assets.models import Asset  # noqa: F401

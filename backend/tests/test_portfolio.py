@@ -109,7 +109,9 @@ def test_database_constraints_and_decimal_types():
     assert list(table.columns.user_id.foreign_keys)[0].target_fullname == "users.id"
     for name in ("starting_balance", "cash_balance"):
         column = table.columns[name]
-        assert isinstance(column.type, Numeric) and column.type.scale == 2
+        assert isinstance(column.type, Numeric)
+        assert column.type.scale == (2 if name == "starting_balance" else None)
+        if name == "cash_balance": assert column.type.precision is None
         assert column.type.asdecimal
         assert column.default.arg == Decimal("10000.00")
     checks = {str(constraint.sqltext) for constraint in table.constraints if isinstance(constraint, CheckConstraint)}

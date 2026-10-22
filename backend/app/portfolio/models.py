@@ -17,6 +17,7 @@ class PaperPortfolio(Base):
         CheckConstraint("base_currency = 'USD'", name="ck_paper_portfolios_currency"),
         CheckConstraint("starting_balance = 10000.00", name="ck_paper_portfolios_starting_balance"),
         CheckConstraint("cash_balance >= 0", name="ck_paper_portfolios_cash_balance"),
+        CheckConstraint("cash_balance NOT IN ('NaN'::numeric,'Infinity'::numeric,'-Infinity'::numeric)", name="ck_paper_cash_finite"),
         CheckConstraint("status IN ('active', 'disabled')", name="ck_paper_portfolios_status"),
     )
 
@@ -28,7 +29,7 @@ class PaperPortfolio(Base):
     environment: Mapped[str] = mapped_column(String(5), nullable=False, default="PAPER", server_default="PAPER")
     base_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD", server_default="USD")
     starting_balance: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False, default=Decimal("10000.00"), server_default="10000.00")
-    cash_balance: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False, default=Decimal("10000.00"), server_default="10000.00")
+    cash_balance: Mapped[Decimal] = mapped_column(Numeric(asdecimal=True), nullable=False, default=Decimal("10000.00"), server_default="10000.00")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
