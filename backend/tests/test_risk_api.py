@@ -222,7 +222,7 @@ def test_implicit_conservative_size_is_reported_from_engine(api):
 def test_no_order_execution_or_consumption_routes_or_code(api):
     routes = {(path,tuple(sorted(method.upper() for method in methods)))
         for path,methods in api[1].openapi()['paths'].items() if path.startswith('/api/risk')}
-    assert routes == {(URL, ('POST',))}
+    assert routes == {(URL, ('POST',)),('/api/risk/paper-evaluations',('POST',))}
     folder = Path(__file__).parents[1]/'app/risk/api'
     for path in folder.glob('*.py'):
         tree = ast.parse(path.read_text())
@@ -231,7 +231,9 @@ def test_no_order_execution_or_consumption_routes_or_code(api):
                 assert not ast.unparse(node.func).endswith(('.commit','.flush','.add','.execute','.submit_order'))
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 names = [node.module or ''] if isinstance(node,ast.ImportFrom) else [n.name for n in node.names]
-                assert not any(any(s in n for s in ('app.market_data','httpx','requests','app.db')) for n in names)
+                assert not any(any(s in n for s in ('app.market_data','httpx','requests')) for n in names)
+                if any(n.startswith('app.db') for n in names):
+                    assert path.name=='trusted.py' and names==['app.db.session']
     assert not {'order','execution','consumed'} & set(post(api).json())
 
 

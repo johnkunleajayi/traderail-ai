@@ -33,7 +33,7 @@ def portfolios():
             now = datetime.now(timezone.utc)
             rows[user_id] = PaperPortfolio(
                 id=params["id"], user_id=user_id, environment="PAPER",
-                base_currency="USD", starting_balance=Decimal("10000.00"),
+                base_currency="USDT", starting_balance=Decimal("10000.00"),
                 cash_balance=Decimal("10000.00"), status="active",
                 created_at=now, updated_at=now,
             )
@@ -52,7 +52,7 @@ def test_authenticated_creation_and_defaults(portfolios):
     response = portfolios.client.get("/api/portfolio")
     assert response.status_code == 200
     assert response.json() == {
-        "environment": "PAPER", "base_currency": "USD",
+        "environment": "PAPER", "base_currency": "USDT",
         "starting_balance": "10000.00", "cash_balance": "10000.00", "status": "active",
     }
     assert Decimal(response.json()["starting_balance"]) == Decimal("10000.00")
@@ -115,7 +115,7 @@ def test_database_constraints_and_decimal_types():
         assert column.type.asdecimal
         assert column.default.arg == Decimal("10000.00")
     checks = {str(constraint.sqltext) for constraint in table.constraints if isinstance(constraint, CheckConstraint)}
-    assert "environment = 'PAPER'" in checks and "base_currency = 'USD'" in checks
+    assert "environment = 'PAPER'" in checks and "base_currency = 'USDT'" in checks
     assert table.columns.created_at.type.timezone and table.columns.updated_at.type.timezone
     assert table.columns.updated_at.onupdate is not None
 

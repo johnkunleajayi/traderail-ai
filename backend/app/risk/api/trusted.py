@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
+from fastapi import Request
 from app.risk.integrated.inputs import RiskEvaluationInputs
 
 
@@ -22,7 +23,7 @@ class UnavailableRiskSource:
         raise TrustedEvidenceUnavailable()
 
 
-def get_trusted_risk_source() -> TrustedRiskSource:
-    # Deliberately unconfigured until authoritative sources exist. Tests may inject
-    # immutable trusted fixtures through FastAPI's server-side dependency overrides.
-    return UnavailableRiskSource()
+def get_trusted_risk_source(request: Request) -> TrustedRiskSource:
+    from app.db.session import get_engine
+    from app.risk.paper_source.service import ProductionPaperRiskSource
+    return ProductionPaperRiskSource(get_engine(str(request.app.state.settings.database_url)))

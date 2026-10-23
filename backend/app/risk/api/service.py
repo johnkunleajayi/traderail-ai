@@ -14,8 +14,13 @@ class RiskInspectionError(Exception):
 
 def run_inspection(source, user_id, intent_identity, evaluated_at):
     at = timestamp(evaluated_at)
+    registered_report = None
     try:
-        inputs = source.resolve(user_id=user_id, intent_identity=intent_identity, evaluated_at=at)
+        from app.risk.paper_source.service import ProductionPaperRiskSource
+        if isinstance(source, ProductionPaperRiskSource):
+            inputs, registered_report = source.inspect_registered(user_id=user_id, intent_identity=intent_identity, evaluated_at=at)
+        else:
+            inputs = source.resolve(user_id=user_id, intent_identity=intent_identity, evaluated_at=at)
         require(inputs, RiskEvaluationInputs, "trusted risk inputs")
     except Exception:
         raise RiskInspectionError(503, "trusted_risk_evidence_unavailable",
@@ -27,7 +32,7 @@ def run_inspection(source, user_id, intent_identity, evaluated_at):
     if inputs.evaluated_at != at:
         raise RiskInspectionError(409, "risk_context_mismatch", "Risk evaluation context does not match")
     try:
-        report = inspect_risk(inputs)
+        report = registered_report if registered_report is not None else inspect_risk(inputs)
         decision = report.decision
         by_gate = {row.gate: row for row in report.gates}
         trade = by_gate[GateName.TRADE_RISK].result

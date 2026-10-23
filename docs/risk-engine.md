@@ -672,3 +672,110 @@ private exchange access, approval persistence/consumption, lifecycle promotion,
 position creation/liquidation, frontend or Owner Console. Trusted authoritative
 adapters, execution-time revalidation and eventual single-use enforcement remain
 prerequisites for later Paper Execution design, not capabilities added by 10G.
+
+### Persisted PAPER kill-switch inventory
+
+`paper_kill_switch_states` (migration `0011_paper_kill_switches`) stores explicit
+PAPER states using the existing kill-switch scope and target contracts. The
+server-only `provision_inactive` operation requires an owned active PAPER portfolio,
+an active canonical instrument and a trusted eligible strategy intent. It creates
+the six required subject records explicitly, with OPERATIONS reason and an explicit
+change timestamp. It never overwrites an existing control, including an ACTIVE one.
+This operation is not exposed through HTTP, startup or an automatic missing-row path.
+
+Subjects are the PAPER system; authenticated user; owned portfolio; strategy family
+and version (all configurations); canonical instrument ID/symbol; and canonical data
+provider/instrument/timeframe path (all snapshots). These targets have no LIVE
+meaning. No instrument-name or absent-row inference is used.
+
+`load_inventory` requires a READ COMMITTED PostgreSQL transaction and authenticated
+ownership. It reads all six exact targets with shared row locks and verifies their
+stored canonical attribution. Missing, unknown, unreadable or future-changed states
+fail closed. It returns existing immutable KillSwitchEvidence/KillSwitchInventory
+contracts bound to the exact intent, portfolio and market context. ACTIVE controls
+remain visible and block through the unchanged safety gate. Resolution never inserts.
+
+Freshness attests the explicit database observation instant, not elapsed time since
+an unchanged control was configured. The caller supplies a bounded observation lease;
+the existing safety policy still enforces maximum switch/inventory age and expiry.
+Use the observation within its transaction/context and intersect this lease with
+approval expiry; an inventory is not indefinite permission. State changes require
+advancing timestamps, target attribution cannot be rewritten, and deletion is blocked.
+Downgrade refuses a populated control table. Migration/provisioning are explicit
+operational steps; no normal database migration or provisioning occurs on import.
+
+There is no operator UI, public mutation API, liquidation, order submission or
+automatic Risk approval. Strategy lifecycle/health and all other mandatory Risk
+evidence must still be supplied authoritatively; clear kill switches alone are insufficient.
+
+### Bounded first controlled PAPER Risk source
+
+`ProductionPaperRiskSource` assembles existing immutable Risk contracts inside one
+READ COMMITTED PostgreSQL transaction. It does not execute, consume approvals or
+change balances. `POST /api/risk/paper-evaluations` accepts exactly `{}` and uses
+the existing authenticated operator grant and exact trusted Origin. Its setup is
+fixed server-side: Adaptive Trend v1.0.0 defaults, BTC/USDT, BINANCE, 1h, exactly
+the latest 100 completed canonical candles. This is the existing single-timeframe
+strategy; 4h/15m/1d multi-timeframe confirmation is not invented. No ingestion or
+network market-data call occurs. A genuine non-LONG-entry decision returns
+`NO_TRADE`; insufficient/stale evidence returns a controlled 503, not fabricated
+NO_TRADE or approval.
+
+`paper-market-validity-v1` expires data at expected candle completion plus 5/10/20/60
+minutes for 15m/1h/4h/1d respectively. The active 1h path uses 10 minutes. Retrieval
+time cannot refresh market age. One causal dataset produces intelligence, regime,
+decision and the ATR14 invalidation intent. Intent validity is additionally bounded
+by the existing five-minute BALANCED approval ceiling.
+
+`paper-costs-v1` declares PAPER assumptions, not venue facts: both entry/exit fees
+0.001, full spreads 0.001 and slippage 0.0005. Unsupported additional size constraints
+are explicitly None; proposed quantity is None, leaving sizing with the existing
+trade-risk gate. The portfolio gate may reject that maximum due to concentration;
+there is no automatic resizing outside Risk and no attempt to obtain approval by
+changing strategy thresholds. The cost policy version is bound into intent evidence.
+
+`paper-portfolio-risk-v1` declares correlation thresholds 0.80/0.70 and maximum ages
+24h/12h for platform/operating respectively. The bounded source admits only a verified
+untouched portfolio, with complete empty position, accounting and execution history,
+10,000 USDT starting balance and cash. Equity then equals cash, aggregate risks and
+exposures are known zero, and correlations/groups are explicit empty tuples. Any
+economic history, nonempty book or capital mismatch fails closed. This is not a
+general active-portfolio valuation or correlation service.
+
+Migration `0012_paper_usdt_risk` follows 0011. It changes new virtual PAPER initialization
+to USDT and replaces only provably unused USD initialization: balances must remain
+10,000 and no position/accounting/authorization/execution request history may exist.
+It never converts economic USD amounts into USDT, resets cash or rewrites historical
+facts. Active USD portfolios block migration. The exact-currency runtime checks remain
+authoritative; the economic tables admit USDT while retaining USD fact compatibility.
+No normal database migration is performed automatically.
+
+`paper_risk_initializations` records the initial positive equity peak, NORMAL state,
+initial book identity and timestamp immutably. Once a portfolio changes, this bounded
+adapter refuses it rather than guessing historical peak or state. `paper-risk-state-v1`
+uses entry thresholds 2/4/6%, recovery thresholds 1.5/3.5/5.5%, multipliers 1/.75/.50/0
+and five-minute evidence age. Existing transition semantics are preserved: recovery
+at or below its recovery threshold takes one step toward NORMAL; escalation can jump
+to the warranted severity. The 6% operating drawdown ceiling is unchanged.
+
+`paper_strategy_activations` durably records the founder-authorized exact default
+strategy configuration as PAPER-only. Read attestations are bounded to 24h. Initial
+activation explicitly provisions the six persisted inactive switch subjects once;
+later missing coverage fails closed and existing active controls are never reset.
+`paper-safety-v1` denies all other environments, allows only lifecycle PAPER and
+health HEALTHY, uses five-minute inventory/switch age, 24h lifecycle age, 15-minute
+health age and the stricter analytical data age. Optional quantitative health and
+validation requirements are explicitly None/False, not invented measurements.
+Operational HEALTHY is freshly derived only from the exact authorized lifecycle,
+available valid analytics and complete clear controls; it is not evidence of
+profitability. Active controls remain visible and prevent approval.
+
+The unchanged four gates evaluate the complete bundle. Approved reports are saved
+through `evaluate_and_register` with exact source references and original evidence
+in the same transaction. Rejections create no executable authorization. The existing
+identity-based inspection route also registers genuine production approvals; it
+does not renew an expired historical authorization. No API accepts financial truth.
+Neither endpoint supplies Paper execution evidence or places an order.
+
+Deployment requires explicit 0011/0012 migration and isolated PostgreSQL verification;
+DDL generation/unit tests alone do not establish physical database correctness.

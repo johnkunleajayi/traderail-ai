@@ -572,3 +572,115 @@ remain in force.
 Editing 0008 does not update databases where it is already applied. Such databases
 require a separately authorized forward corrective migration for the lifecycle
 CHECK; no forward migration is introduced by this correction.
+
+## Milestone 11E — authenticated Paper execution API
+
+`POST /api/paper/executions` accepts exactly `intent_identity`,
+`decision_identity`, and `request_identity` (canonical SHA-256 identities).
+Unknown fields are rejected. Clients cannot submit ownership, portfolio cash,
+approved quantity, positions, prices, costs, approvals, or execution timestamps.
+Existing cookie authentication is required (401 anonymously); the exact configured
+frontend Origin is required (403 otherwise). Responses, including errors, use
+`no-store` and `no-referrer`.
+
+The server-only `TrustedPaperCommandSource` must resolve the exact immutable
+approved command for the authenticated user. All three identities and ownership
+are checked before opening an economic transaction; a mismatch is 404. There is
+no HTTP registration or injection route for trusted evidence. No Risk decision
+is constructed or approved by the API. New execution timestamps come from the
+explicit boundary clock; retries must resolve the original command and original
+timestamp so 11D can reconstruct the committed fact even after approval expiry.
+
+**Current authoritative-source limitation:** like the existing Risk inspection
+boundary, the default resolver is deliberately unavailable. There is no durable
+intent/approval registry or production evidence builder yet. Therefore normal
+requests return 503 `trusted_paper_evidence_unavailable` without opening an
+economic transaction. This is not a fallback success path. A trusted server
+resolver must be explicitly implemented/wired before end-to-end operational API
+verification; HTTP clients cannot enable it. Tests inject trusted server fixtures.
+
+When a trusted source is supplied, the adapter invokes only existing
+`execute_paper` inside one caller-owned PostgreSQL transaction. The transaction
+commits before a success response is returned; any domain, presentation, or
+commit failure prevents success. Existing 11D locks, revalidation, risk-approved
+quantity, approval consumption, immutable receipts, currency rules, full-close
+restriction and exact-retry behavior remain unchanged. SHORT is rejected before
+economic orchestration; the API enables no LIVE or venue behavior.
+
+The concise response includes COMPLETED/PAPER, result/intent/decision/request/
+order/fill identities, position UUID and historical OPENED/CLOSED effect, action,
+quantity, modeled fill price, gross notional, fee, currency, resulting cash,
+realized gross/net P&L where present, and original execution UTC time. Financial
+values are exact strings, absent realized outcomes are null. Position effect and
+cash describe that committed operation, not a live current-position/balance query;
+an exact retry returns the same original result.
+
+Malformed bodies are 422. Unsupported actions, expired authorization, invalid
+evidence, insufficient cash, idempotency conflicts and other domain rejections
+are controlled 409 responses with stable codes. Storage/commit failures and
+unavailable authoritative evidence are sanitized 503 responses; ambiguous storage
+outcomes require reconciliation with the same request, never a new economic ID.
+No SQL, internal error details or credentials are reflected to clients.
+
+API tests use isolated server fixtures and a transaction/economic-service double
+to verify transport, delegated command identity, error/rollback propagation,
+entry/full-close response oracles and retry forwarding. They do not replace the
+separately verified real PostgreSQL 11D concurrency/atomicity checks. The ordinary
+test database guard remains unchanged. No migration, persistence redesign,
+provider call, frontend, scheduler, or real venue execution is added in 11E.
+
+## Milestone 11E.2 — durable pre-execution authorization registry
+
+Migration `0010_paper_authorizations` adds two server-only immutable tables. It
+must be verified on the isolated integration database before any separately
+authorized normal-database migration. No route accepts registry payloads.
+
+`paper_authorizations` stores the complete `AuthorizationPackage`: the original
+immutable TradeIntent, full APPROVED RiskDecision, all four passing GateRecords,
+original RiskEvaluationInputs (including policies, snapshots and safety evidence),
+and explicit execution-evidence references. Indexed/constraint-bound metadata
+contains ownership, instrument, quantity, identities and approval times. Created
+time is the original evaluation instant; insertion/retrieval never reissues an
+approval or introduces a wall-clock identity. Only PAPER/APPROVED records are
+accepted. A composite FK binds portfolio and user to the actual Paper portfolio;
+the additive `(id,user_id)` unique key changes no portfolio economics.
+
+`ExecutionEvidenceReferences` binds the approved data source, market context,
+cost configuration and portfolio valuation identities. It does not invent a fresh
+price, fees or validity. A future server resolver must retrieve those authoritative
+sources and revalidate freshness/current book; changed incompatible state requires
+fresh Risk evaluation. Historical references alone are not permission to execute.
+
+`paper_authorized_commands` optionally binds the exact original PaperCommand to
+an existing registered authorization, request/action and owner. First registration
+requires unexpired approval and explicit current command time, matching approved
+price/cost/source references, and existing 11B market/time validation. It performs
+no economic action and consumes no approval. Changed payload under the same
+request/action conflicts. Recovery returns the original validated command after
+expiry for 11D's exact-retry reconciliation; that does not permit a first execution
+after expiry or extend any authorization. Existing 11C consumption remains the
+single-use authority. There is no registry-side automatic retry/execution.
+
+The versioned tagged JSON codec preserves nested Decimal types and representations,
+UTC instants, UUIDs, enum keys, mappings and immutable domain records. Recovery
+uses a fixed allowlist (no pickle, eval or payload-controlled imports), runs original
+constructors, verifies every derived field/identity and matches canonical payload
+and metadata. The package also verifies the integrated report's original inputs
+identity. Equivalent canonical inputs preserve identity; the first stored exact
+representation is retained on an equivalent retry. Digest integrity is not source
+authentication: only trusted server code may write this repository.
+
+`risk.authorization_service.evaluate_and_register` is the server integration point:
+it evaluates unchanged 10F once, persists only an APPROVED full package, and returns
+REJECTED without creating a record. The caller owns the PostgreSQL READ COMMITTED,
+non-autocommit transaction; repository savepoints prevent partial records on
+failure. Neither repository commits. Exact persistence retries are idempotent;
+unique constraints arbitrate concurrent conflicts. UPDATE/DELETE triggers reject
+mutation of both tables. Downgrade refuses any persisted registry history.
+
+The existing Risk inspection HTTP route remains inspection-only. Its production
+trusted Risk source is still unavailable. This milestone supplies the durable
+boundary, not production policy/health/kill-switch or market evidence builders,
+an intent-generation workflow, or an operational Paper resolver. Consequently
+11E's default HTTP resolver continues to return controlled 503. No approval is
+manufactured from request identities, balances, candles or client financial data.

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, field_serializer
 class PaperPortfolioResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     environment: Literal["PAPER"]
-    base_currency: Literal["USD"]
+    base_currency: Literal["USDT"]
     starting_balance: Decimal
     cash_balance: Decimal
     status: Literal["active", "disabled"]

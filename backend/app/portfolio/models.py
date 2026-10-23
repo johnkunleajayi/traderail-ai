@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,8 +13,9 @@ class PaperPortfolio(Base):
     """Virtual-only ledger foundation; future LIVE accounts must use a separate domain."""
     __tablename__ = "paper_portfolios"
     __table_args__ = (
+        UniqueConstraint('id','user_id',name='uq_paper_portfolio_owner'),
         CheckConstraint("environment = 'PAPER'", name="ck_paper_portfolios_environment"),
-        CheckConstraint("base_currency = 'USD'", name="ck_paper_portfolios_currency"),
+        CheckConstraint("base_currency = 'USDT'", name="ck_paper_portfolios_currency"),
         CheckConstraint("starting_balance = 10000.00", name="ck_paper_portfolios_starting_balance"),
         CheckConstraint("cash_balance >= 0", name="ck_paper_portfolios_cash_balance"),
         CheckConstraint("cash_balance NOT IN ('NaN'::numeric,'Infinity'::numeric,'-Infinity'::numeric)", name="ck_paper_cash_finite"),
@@ -27,7 +28,7 @@ class PaperPortfolio(Base):
         nullable=False, unique=True,
     )
     environment: Mapped[str] = mapped_column(String(5), nullable=False, default="PAPER", server_default="PAPER")
-    base_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD", server_default="USD")
+    base_currency: Mapped[str] = mapped_column(String(4), nullable=False, default="USDT", server_default="USDT")
     starting_balance: Mapped[Decimal] = mapped_column(Numeric(20, 2), nullable=False, default=Decimal("10000.00"), server_default="10000.00")
     cash_balance: Mapped[Decimal] = mapped_column(Numeric(asdecimal=True), nullable=False, default=Decimal("10000.00"), server_default="10000.00")
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", server_default="active")

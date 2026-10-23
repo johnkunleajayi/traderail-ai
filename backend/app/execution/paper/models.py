@@ -26,7 +26,7 @@ positions=Table('paper_positions',Base.metadata,
     money('entry_cost_basis'),money('entry_fee'),money('entry_spread_cost'),money('entry_slippage_cost'),
     Column('status',String(6),nullable=False),at('opened_at'),at('closed_at',True),
     Column('closing_request_identity',String(71),unique=True),
-    CheckConstraint("environment='PAPER' AND direction='LONG' AND currency='USD'",name='ck_paper_position_scope'),
+    CheckConstraint("environment='PAPER' AND direction='LONG' AND currency IN ('USD','USDT')",name='ck_paper_position_scope'),
     CheckConstraint("(status='OPEN' AND quantity>0 AND quantity=opening_quantity AND closed_at IS NULL AND closing_request_identity IS NULL) OR (status='CLOSED' AND quantity=0 AND closed_at IS NOT NULL AND closed_at>=opened_at AND closing_request_identity IS NOT NULL)",name='ck_paper_position_lifecycle'),
     *(CheckConstraint(f"{n} NOT IN ('NaN'::numeric,'Infinity'::numeric,'-Infinity'::numeric) AND {n} {'>' if n in ('opening_quantity','average_entry_price','entry_cost_basis','entry_reference_notional') else '>='} 0",name='ck_paper_pos_'+n)
       for n in ('opening_quantity','quantity','average_entry_price','entry_reference_notional','entry_cost_basis','entry_fee','entry_spread_cost','entry_slippage_cost')))
@@ -45,7 +45,7 @@ accounting=Table('paper_accounting_entries',Base.metadata,
     money('quantity'),money('cash_before'),money('cash_after'),money('gross_notional'),money('fee'),
     money('entry_cost_basis',True),money('entry_fee_attributable',True),money('gross_realized_pnl',True),money('net_realized_pnl',True),
     at('executed_at'),Column('evidence',JSONB,nullable=False),Column('canonical_payload',Text,nullable=False),
-    CheckConstraint("environment='PAPER' AND currency='USD' AND action IN ('ENTER_LONG','EXIT_LONG')",name='ck_paper_accounting_scope'),
+    CheckConstraint("environment='PAPER' AND currency IN ('USD','USDT') AND action IN ('ENTER_LONG','EXIT_LONG')",name='ck_paper_accounting_scope'),
     CheckConstraint("(action='ENTER_LONG' AND entry_cost_basis IS NULL AND entry_fee_attributable IS NULL AND gross_realized_pnl IS NULL AND net_realized_pnl IS NULL) OR (action='EXIT_LONG' AND entry_cost_basis IS NOT NULL AND entry_fee_attributable IS NOT NULL AND gross_realized_pnl IS NOT NULL AND net_realized_pnl IS NOT NULL)",name='ck_paper_accounting_realized'),
     *(CheckConstraint(f"{n} NOT IN ('NaN'::numeric,'Infinity'::numeric,'-Infinity'::numeric)"+("" if n in ('gross_realized_pnl','net_realized_pnl') else f" AND {n} {'>' if n in ('quantity','gross_notional') else '>='} 0"),name='ck_paper_acct_'+n)
       for n in ('quantity','cash_before','cash_after','gross_notional','fee','entry_cost_basis','entry_fee_attributable','gross_realized_pnl','net_realized_pnl')))
