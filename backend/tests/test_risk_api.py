@@ -222,7 +222,7 @@ def test_implicit_conservative_size_is_reported_from_engine(api):
 def test_no_order_execution_or_consumption_routes_or_code(api):
     routes = {(path,tuple(sorted(method.upper() for method in methods)))
         for path,methods in api[1].openapi()['paths'].items() if path.startswith('/api/risk')}
-    assert routes == {(URL, ('POST',)),('/api/risk/paper-evaluations',('POST',))}
+    assert routes == {(URL, ('POST',)),('/api/risk/paper-evaluations',('POST',)),('/api/risk/paper-close-evaluations',('POST',))}
     folder = Path(__file__).parents[1]/'app/risk/api'
     for path in folder.glob('*.py'):
         tree = ast.parse(path.read_text())

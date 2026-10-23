@@ -197,7 +197,10 @@ def test_default_evidence_source_is_fail_closed(api):
     del api.app.dependency_overrides[get_trusted_paper_source]
     r=post(api);assert r.status_code==503
     assert r.json()['detail']['code']=='trusted_paper_evidence_unavailable'
-    api.transaction.assert_not_called()
+    # Production resolution participates in the economic transaction; unavailable
+    # storage rolls back without reaching the economic service.
+    assert api.transaction.call_count==1 and api.state['rollbacks']==1
+    api.executor.assert_not_called()
 
 
 def test_source_failure_is_sanitized_without_transaction(api):

@@ -684,3 +684,73 @@ boundary, not production policy/health/kill-switch or market evidence builders,
 an intent-generation workflow, or an operational Paper resolver. Consequently
 11E's default HTTP resolver continues to return controlled 503. No approval is
 manufactured from request identities, balances, candles or client financial data.
+
+
+## Bounded production PAPER authorization, execution and full close
+
+The earlier 11E/11E.2 unavailable-resolver descriptions above describe those
+milestone boundaries. ProductionPaperCommandSource now resolves the existing
+POST /api/paper/executions identity-only command inside the same transaction as
+11D's economic service. No additional migration is required. Only owned USDT
+PAPER portfolios, BTC/USDT canonical Binance 1H evidence and LONG/CASH are supported.
+Execution does not evaluate strategy or calculate a new permitted quantity.
+
+POST /api/risk/paper-evaluations accepts {} under existing owner/operator and
+trusted-Origin protection. A genuine Adaptive Trend ENTER_LONG and all four Risk
+gates are required for APPROVED. NO_TRADE and REJECTED remain valid outcomes.
+Only APPROVED registers an authorization; the response includes deterministic
+request_identity as well as intent_identity and decision_identity. Submit those
+three IDs to POST /api/paper/executions. Financial HTTP fields remain forbidden.
+
+The server reconstructs the immutable authorization, locks/captures the portfolio,
+checks its exact approved PaperBook state identity, and re-reads the exact approved
+canonical candle prefix. A newer observation cannot silently replace that prefix.
+Approved quantity, price, source and server-owned paper-costs-v1 must reconcile;
+approval and market evidence must remain valid. The existing adverse fill model
+and atomic accounting service perform all economics. Command registration,
+approval consumption, order/fill, cash, position and receipt commit together.
+
+Exact successful retries recover the original command/receipt, even after expiry;
+they never authorize another action. A duplicate waiting for the portfolio lock
+re-reads the winning command after that lock is acquired. Conflicting identities,
+UNKNOWN state or consumption without a reconstructable receipt fail closed.
+PostgreSQL constraints/locks, not process memory, are the concurrency authority.
+
+### Fresh exit Risk authorization
+
+POST /api/risk/paper-close-evaluations accepts only position_id and uses the same
+server-enforced operator permission, exact Origin and no-store policy. This
+Risk-side adapter evaluates Adaptive Trend in LONG state. Only a genuine EXIT_LONG
+creates a fresh exit TradeIntent, four-gate Risk report and authorization. The
+consumed entry approval is acquisition provenance only, never permission to exit.
+The full held quantity is proposed explicitly and cannot silently be resized.
+Submit the new approved exit's three identities to the same execution endpoint.
+
+Only the first single position is supported. Immutable initialization/acquisition
+facts must reconcile with the current book and complete completed-candle history
+since entry within the existing 100-candle prefix. The adapter reconstructs observed
+equity peaks and prior risk state with the existing hysteresis policy; it invents
+no intrabar peak. Missing history, additional economic activity, an incompatible
+original invalidation boundary or missing evidence fails closed. All four unchanged
+Risk gates still apply, including conservative exposure checks; a close may be
+rejected. There is no emergency-liquidation bypass or strategy threshold change.
+
+BUY cash change = -(modeled notional + fee). SELL cash change = modeled notional
+- fee. Gross realized P&L = reference exit notional - acquisition reference notional.
+Net realized P&L = modeled exit notional - acquisition modeled cost basis - entry
+fee - exit fee. Spread/slippage are already in prices and are not charged twice.
+The original position closes with acquisition provenance; retries cannot duplicate
+cash, fills, position changes or realized P&L.
+
+Synthetic oracle (quantity 1): reference prices 178 and 193; modeled prices 178.178
+and 192.807; fees 0.178178 and 0.192807. Cash is
+10000 -> 9821.643822 -> 10014.258015. Gross realized P&L = 15 and net = 14.258015.
+This fixture does not change production evidence, policy or strategy thresholds.
+Tests run real services against an isolated rollback-capable SQL ledger double;
+that is not physical PostgreSQL concurrency/constraint/crash-recovery proof.
+
+Physical verification of migrations 0011/0012 and this wiring remains DEFERRED due
+to the runtime PostgreSQL connectivity limitation. No normal DB is connected to
+or migrated here. Verify on an isolated branch before separately authorized normal
+deployment and manual API testing. No new migration, provider call, LIVE, SHORT
+accounting, partial exit, scale-in, scheduler, frontend or performance engine.

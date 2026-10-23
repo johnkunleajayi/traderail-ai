@@ -7,12 +7,30 @@ from .trusted import get_trusted_risk_source, TrustedRiskSource
 from .schemas import EvaluationRequest, EvaluationResponse
 from .service import run_inspection, RiskInspectionError
 from pydantic import BaseModel,ConfigDict
+from uuid import UUID
 
 
 class ControlledPaperSetup(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+
+class ControlledPaperClose(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    position_id: UUID
+
 router = APIRouter(prefix="/risk", tags=["risk-inspection"])
+
+
+@router.post('/paper-close-evaluations')
+def evaluate_paper_close(payload:ControlledPaperClose,response:Response,
+        user:User=Depends(inspection_permission),source=Depends(get_trusted_risk_source),
+        at:datetime=Depends(evaluation_time)):
+    response.headers['Cache-Control']='no-store'
+    try:
+        return source.evaluate_close(user_id=user.id,position_id=payload.position_id,evaluated_at=at)
+    except Exception:
+        raise HTTPException(503,{'code':'trusted_paper_close_unavailable',
+            'message':'Authoritative full-close evidence is unavailable'},headers={'Cache-Control':'no-store'}) from None
 
 
 @router.post("/paper-evaluations")

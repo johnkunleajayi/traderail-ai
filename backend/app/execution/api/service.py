@@ -4,6 +4,7 @@ from app.risk.canonical import require, timestamp
 from app.risk.vocabulary import Environment, Direction
 from app.execution.paper import PaperCommand, execute_paper
 from .schemas import PaperExecutionResponse
+from app.execution.paper.production import ProductionPaperCommandSource
 
 
 class PaperAPIError(Exception):
@@ -33,6 +34,27 @@ def _rejection(error):
 
 def run_paper_execution(source, begin, user_id, payload, evaluated_at):
     at = timestamp(evaluated_at)
+    if isinstance(source,ProductionPaperCommandSource):
+        try:
+            with begin() as connection:
+                command=source.resolve_in_transaction(connection,user_id=user_id,intent_identity=payload.intent_identity,
+                    decision_identity=payload.decision_identity,request_identity=payload.request_identity,evaluated_at=at)
+                # The existing execution path participates in this exact transaction;
+                # its nested context is a savepoint, not a second connection/commit.
+                from contextlib import contextmanager
+                @contextmanager
+                def same_transaction():
+                    yield connection
+                class Resolved:
+                    def resolve(self,**kwargs): return command
+                return run_paper_execution(Resolved(),same_transaction,user_id,payload,at)
+        except PaperAPIError:raise
+        except LookupError:
+            raise PaperAPIError(404,'paper_request_unavailable','Paper execution request is unavailable') from None
+        except (ValueError,ArithmeticError) as error:
+            raise _rejection(error) from None
+        except Exception:
+            raise PaperAPIError(503,'trusted_paper_evidence_unavailable','Authoritative Paper execution evidence is unavailable') from None
     try:
         command = source.resolve(user_id=user_id, intent_identity=payload.intent_identity,
             decision_identity=payload.decision_identity, request_identity=payload.request_identity,

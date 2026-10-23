@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
+from app.execution.paper.production import ProductionPaperCommandSource
 from app.execution.paper import PaperCommand
 
 
@@ -23,6 +24,4 @@ class UnavailablePaperCommandSource:
 
 
 def get_trusted_paper_source() -> TrustedPaperCommandSource:
-    # Like 10G, no persisted intent/approval registry or authoritative runtime
-    # evidence builder exists yet. Do not fabricate safety state or accept it via HTTP.
-    return UnavailablePaperCommandSource()
+    return ProductionPaperCommandSource()

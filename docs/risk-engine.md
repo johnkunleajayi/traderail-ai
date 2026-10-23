@@ -779,3 +779,24 @@ Neither endpoint supplies Paper execution evidence or places an order.
 
 Deployment requires explicit 0011/0012 migration and isolated PostgreSQL verification;
 DDL generation/unit tests alone do not establish physical database correctness.
+
+
+## Bounded PAPER entry and full-close integration
+
+The first-trade source now binds snapshot valuation_identity to the exact
+PaperBookState.state_identity required by existing execution revalidation. The
+snapshot retains its own timestamped identity. No gate, sizing math or policy is
+changed. APPROVED responses include deterministic ExecutionRequest metadata;
+constructing an identity does not consume an approval or execute an order.
+
+The operator-only, trusted-Origin POST /api/risk/paper-close-evaluations accepts
+only a position UUID. The first single BTC/USDT USDT PAPER LONG requires a genuine
+Adaptive Trend EXIT_LONG, complete acquisition provenance and completed-candle
+history since entry. Existing drawdown/hysteresis mathematics reconstructs observed
+peak/prior state from authoritative initialization and marks, never current cash
+as an assumed historical peak. A new intent proposes the full held quantity and
+runs all four unchanged gates. Missing evidence, NO_TRADE or rejection creates no
+exit authorization. Entry approval cannot authorize exit. Conservative Risk gates
+may reject a close; no emergency-exit exception is introduced. Execution never
+evaluates strategy. See execution-engine.md for transaction/accounting semantics
+and the explicitly deferred physical PostgreSQL verification.

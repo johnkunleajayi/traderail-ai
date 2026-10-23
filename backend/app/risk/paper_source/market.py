@@ -25,7 +25,7 @@ def digest(namespace,payload):
     return fingerprint(namespace,canonical_json(values(payload)))
 
 
-def analyze(context,candles,*,at):
+def analyze(context,candles,*,at,position_state=PositionState.CASH):
     at=timestamp(at)
     if (context.canonical_symbol,context.provider,context.timeframe)!=(SYMBOL,PROVIDER,TIMEFRAME):
         raise PaperEvidenceUnavailable("Unsupported controlled PAPER setup")
@@ -39,7 +39,7 @@ def analyze(context,candles,*,at):
     features=calculate_features(context,candles,as_of=at)
     regimes=classify_regimes(features,as_of=at)
     strategy=AdaptiveTrendStrategy()
-    observation=StrategyInput(context,candles[-1],features[-1],regimes[-1],strategy.definition,at,PositionState.CASH)
+    observation=StrategyInput(context,candles[-1],features[-1],regimes[-1],strategy.definition,at,position_state)
     decision=evaluate_strategy(strategy,observation)
     market=MarketRiskContext(context,candles[-1].close_time,at,expiry,
         digest("paper-market-data/v1",{"policy":MARKET_POLICY_VERSION,"history":candles}),
@@ -47,7 +47,7 @@ def analyze(context,candles,*,at):
     return observation,decision,market
 
 
-def read_observation(c,*,at):
+def read_candles(c,*,at):
     row=c.execute(select(Instrument.__table__).where(Instrument.canonical_symbol==SYMBOL,
         Instrument.status=="active",Instrument.market_type=="SPOT").with_for_update(read=True)).mappings().one_or_none()
     if row is None:
@@ -60,4 +60,9 @@ def read_observation(c,*,at):
         MarketCandle.provider==PROVIDER,MarketCandle.timeframe==TIMEFRAME,MarketCandle.close_time<at)
         .order_by(MarketCandle.open_time.desc()).limit(HISTORY).with_for_update(read=True)).mappings().all()
     candles=tuple(Candle(**{name:r[name] for name in Candle.__dataclass_fields__}) for r in reversed(stored))
-    return analyze(DatasetContext(row['id'],SYMBOL,PROVIDER,TIMEFRAME),candles,at=at)
+    return DatasetContext(row['id'],SYMBOL,PROVIDER,TIMEFRAME),candles
+
+
+def read_observation(c,*,at,position_state=PositionState.CASH):
+    context,candles=read_candles(c,at=at)
+    return analyze(context,candles,at=at,position_state=position_state)

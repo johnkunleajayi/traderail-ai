@@ -86,26 +86,11 @@ def assemble(c,user_id,at):
                 or old['previous_state']!='NORMAL' or old['initialized_at']>at):
             raise PaperEvidenceUnavailable("Initial risk history does not reconcile")
         initialized_at=old['initialized_at']
+    lifecycle,inventory,health=safety_evidence(c,intent,observation,market,at,until,activate=True)
+    # The existing execution revalidator binds valuation to the exact locked book.
+    # Observation time/currency remain bound by the immutable Risk snapshot itself.
+    valuation=book.state_identity
     definition=observation.definition
-    c.execute(insert(activations).values(configuration_identity=definition.configuration_identity,
-        family=definition.family,version=definition.version,environment='PAPER',lifecycle='PAPER',
-        authority=ACTIVATION_VERSION,activated_at=at).on_conflict_do_nothing())
-    activation=c.execute(select(activations).where(activations.c.configuration_identity==definition.configuration_identity)
-        .with_for_update(read=True)).mappings().one()
-    if (activation['family'],activation['version'],activation['environment'],activation['lifecycle'],activation['authority'])!=(
-            definition.family,definition.version,'PAPER','PAPER',ACTIVATION_VERSION) or activation['activated_at']>at:
-        raise PaperEvidenceUnavailable("Exact PAPER lifecycle authorization unavailable")
-    lifecycle=StrategyLifecycleEvidence(definition,Environment.PAPER,StrategyLifecycle(StrategyState.PAPER),
-        at,at+timedelta(hours=24),digest('paper-lifecycle-attestation/v1',dict(activation)))
-    inventory=load_inventory(c,intent,user_id=user_id,observed_at=at,valid_until=min(until,at+timedelta(minutes=5)))
-    clear=evaluate_switches(intent,inventory,SAFETY_POLICY,at,Findings())[2]
-    # Operational eligibility only. No Paper performance/profitability is inferred.
-    health=StrategyHealthEvidence(definition,Environment.PAPER,
-        StrategyHealth.HEALTHY if clear else StrategyHealth.UNKNOWN,None,observation.candle.open_time,
-        observation.candle.close_time,at,min(market.expires_at,at+timedelta(minutes=15)),
-        digest('paper-operational-health/v1',{'activation':dict(activation),'input':observation.input_identity,
-            'inventory':inventory.inventory_identity,'policy':SAFETY_POLICY.policy_identity}))
-    valuation=digest('paper-empty-book-valuation/v1',{'book':book.state_identity,'at':at,'currency':'USDT'})
     zero=Decimal('0')
     snapshot=PortfolioRiskSnapshot(scope,at,until,valuation,book.cash_balance,book.cash_balance,RiskState.NORMAL,
         (),zero,zero,zero,zero,None,None,None,zero)
@@ -118,6 +103,30 @@ def assemble(c,user_id,at):
         COSTS,CONSTRAINTS,None)
     return RiskEvaluationInputs(intent,config,snapshot,market,at,assumptions,PORTFOLIO_POLICY,context,
         STATE_POLICY,drawdown,SAFETY_POLICY,inventory,lifecycle,health),decision
+
+
+def safety_evidence(c,intent,observation,market,at,until,*,activate=False):
+    definition=observation.definition
+    if activate:
+        c.execute(insert(activations).values(configuration_identity=definition.configuration_identity,
+            family=definition.family,version=definition.version,environment='PAPER',lifecycle='PAPER',
+            authority=ACTIVATION_VERSION,activated_at=at).on_conflict_do_nothing())
+    activation=c.execute(select(activations).where(activations.c.configuration_identity==definition.configuration_identity)
+        .with_for_update(read=True)).mappings().one()
+    if (activation['family'],activation['version'],activation['environment'],activation['lifecycle'],activation['authority'])!=(
+            definition.family,definition.version,'PAPER','PAPER',ACTIVATION_VERSION) or activation['activated_at']>at:
+        raise PaperEvidenceUnavailable("Exact PAPER lifecycle authorization unavailable")
+    lifecycle=StrategyLifecycleEvidence(definition,Environment.PAPER,StrategyLifecycle(StrategyState.PAPER),
+        at,at+timedelta(hours=24),digest('paper-lifecycle-attestation/v1',dict(activation)))
+    inventory=load_inventory(c,intent,user_id=intent.scope.user_id,observed_at=at,valid_until=min(until,at+timedelta(minutes=5)))
+    clear=evaluate_switches(intent,inventory,SAFETY_POLICY,at,Findings())[2]
+    # Operational eligibility only. No Paper performance/profitability is inferred.
+    health=StrategyHealthEvidence(definition,Environment.PAPER,
+        StrategyHealth.HEALTHY if clear else StrategyHealth.UNKNOWN,None,observation.candle.open_time,
+        observation.candle.close_time,at,min(market.expires_at,at+timedelta(minutes=15)),
+        digest('paper-operational-health/v1',{'activation':dict(activation),'input':observation.input_identity,
+            'inventory':inventory.inventory_identity,'policy':SAFETY_POLICY.policy_identity}))
+    return lifecycle,inventory,health
 
 
 class ProductionPaperRiskSource:
@@ -143,14 +152,24 @@ class ProductionPaperRiskSource:
     def evaluate_latest(self,*,user_id,evaluated_at):
         with self.engine.begin() as c:
             inputs,decision=assemble(c,user_id,evaluated_at)
-            if inputs is None:
-                return {'status':'NO_TRADE','strategy_decision':decision.decision.value,
-                    'decision_identity':decision.decision_identity,'reason_codes':decision.reason_codes}
-            refs=ExecutionEvidenceReferences(inputs.market_context.data_identity,inputs.market_context.context_identity,
-                inputs.sizing_assumptions.costs.costs_identity,inputs.snapshot.valuation_identity)
-            report,package=evaluate_and_register(c,inputs,user_id=user_id,evidence_references=refs)
-            from app.risk.canonical import to_wire
-            return {'status':report.decision.outcome.value,'intent_identity':inputs.intent.intent_identity,
+            return registered_response(c,inputs,decision,user_id)
+
+    def evaluate_close(self,*,user_id,position_id,evaluated_at):
+        from .close import assemble_close
+        with self.engine.begin() as c:
+            inputs,decision=assemble_close(c,user_id,position_id,evaluated_at)
+            return registered_response(c,inputs,decision,user_id)
+
+
+def registered_response(c,inputs,decision,user_id):
+    if inputs is None:
+        return {'status':'NO_TRADE','strategy_decision':decision.decision.value,
+            'decision_identity':decision.decision_identity,'reason_codes':decision.reason_codes}
+    refs=ExecutionEvidenceReferences(inputs.market_context.data_identity,inputs.market_context.context_identity,
+        inputs.sizing_assumptions.costs.costs_identity,inputs.snapshot.valuation_identity)
+    report,package=evaluate_and_register(c,inputs,user_id=user_id,evidence_references=refs)
+    from app.risk.canonical import to_wire
+    result={'status':report.decision.outcome.value,'intent_identity':inputs.intent.intent_identity,
                 'decision_identity':report.decision.decision_identity,'evaluated_at':to_wire(report.decision.evaluated_at),
                 'approval_expires_at':to_wire(report.decision.approval_expires_at),
                 'registry_identity':package.registry_identity if package else None,
@@ -158,3 +177,8 @@ class ProductionPaperRiskSource:
                 'reason_codes':tuple(code.value for code in report.decision.reason_codes),
                 'gates':tuple({'gate':row.gate.value,'outcome':row.disposition.value,
                     'record_identity':row.record_identity} for row in report.gates)}
+    if package:
+        from app.execution.request import ExecutionRequest
+        # Deterministic request metadata only; no order or consumption is created.
+        result['request_identity']=ExecutionRequest(package.authorization,'PAPER_INTERNAL',report.decision.evaluated_at).request_identity
+    return result
