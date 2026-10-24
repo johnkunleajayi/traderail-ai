@@ -2,6 +2,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 from app.core.config import get_settings
 from app.db.base import Base
+from app.mandates.models import TradingMandate  # noqa: F401
 from app.risk.paper_switches import states as paper_switch_states  # noqa: F401
 from app.risk.paper_source import models as paper_risk_source_models  # noqa: F401
 from app.execution.persistence import models as execution_models  # noqa: F401

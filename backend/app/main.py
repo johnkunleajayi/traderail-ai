@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.mandates.router import router as mandates_router
 from app.api.health import router as health_router
 from app.risk.api.router import router as risk_router
 from app.execution.api.router import router as paper_execution_router
@@ -48,7 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @application.middleware("http")
     async def auth_response_headers(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith(("/api/auth/", "/api/strategy-lab/", "/api/risk/", "/api/paper/")):
+        if request.url.path.startswith(("/api/auth/", "/api/strategy-lab/", "/api/risk/", "/api/paper/", "/api/mandates")):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
         return response
@@ -56,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(health_router, prefix="/api")
     application.include_router(auth_router, prefix="/api")
     application.include_router(portfolio_router, prefix="/api")
+    application.include_router(mandates_router, prefix="/api")
     application.include_router(assets_router, prefix="/api")
     application.include_router(instruments_router, prefix="/api")
     application.include_router(venues_router, prefix="/api")
