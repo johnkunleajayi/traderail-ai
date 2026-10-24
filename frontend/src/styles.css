@@ -672,3 +672,6 @@ button:disabled { opacity: .6; cursor: wait; }
 .lab-validation-table thead { background:var(--soft); }.lab-validation-table th { font-weight:500; }.lab-validation-table td:last-child { min-width:240px; }.lab-validation-table code { font-size:11px; }
 .lab-validation-table td p { font-size:12px; line-height:1.75; margin-top:8px; }
 @media(max-width:540px){.lab-validation-setup,.lab-validation-report{padding:18px;}.lab-validation-window,.lab-validation-values{grid-template-columns:minmax(0,1fr);}.lab-workflows>.workspace-nav{gap:2px;}.lab-workflows>.workspace-nav button{padding-inline:10px;}}
+
+/* Additional authenticated feature entries wrap on narrow screens. */
+.workspace-feature-nav { flex-wrap:wrap; }
