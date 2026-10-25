@@ -1,4 +1,4 @@
-"""Authenticated user-intent API. No trading action is reachable here."""
+"""Owned mandate intent, inspection and explicitly requested PAPER entry actions."""
 from uuid import UUID
 from datetime import datetime
 from app.mandate_eligibility.contracts import EligibilityResult
@@ -12,6 +12,8 @@ from app.users.models import User
 from app.mandate_strategy.contracts import MandateEvaluationError, MandateObservationResult
 from app.mandate_strategy.service import evaluate_mandate
 from app.mandate_risk.contracts import MandateRiskResult, MandateRiskError
+from app.mandate_paper.contracts import PaperRunResult
+from app.mandate_paper.service import execution_clock
 from . import service
 from .domain import MandateError, MandateStatus
 from .schemas import MandateIntent, MandateResponse, LifecycleAction
@@ -121,6 +123,29 @@ def evaluate_mandate_risk(mandate_id: UUID, payload: LifecycleAction = Lifecycle
     except MandateEvaluationError as error:
         db.rollback()
         raise HTTPException(409, {"code": error.code, "message": str(error), "reason_codes": error.reasons}) from None
+    except Exception:
+        db.rollback()
+        raise
+
+
+@router.post("/{mandate_id}/paper-run", response_model=PaperRunResult)
+def run_mandate_paper(mandate_id: UUID, payload: LifecycleAction = LifecycleAction(),
+        user: User = Depends(write_permission), db: Session = Depends(get_session),
+        at: datetime = Depends(resolution_time), clock = Depends(execution_clock)):
+    from app.mandate_paper.service import run
+    try:
+        result=run(db,user.id,mandate_id,evaluated_at=at,clock=clock)
+        db.commit()
+        return result
+    except MandateRiskError as error:
+        db.rollback()
+        raise HTTPException(error.status,{"code":error.code,"message":str(error)}) from None
+    except MandateError as error:
+        db.rollback()
+        raise HTTPException(error.status,{"code":error.code,"message":str(error)}) from None
+    except MandateEvaluationError as error:
+        db.rollback()
+        raise HTTPException(409,{"code":error.code,"message":str(error),"reason_codes":error.reasons}) from None
     except Exception:
         db.rollback()
         raise

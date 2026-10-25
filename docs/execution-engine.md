@@ -754,3 +754,12 @@ to the runtime PostgreSQL connectivity limitation. No normal DB is connected to
 or migrated here. Verify on an isolated branch before separately authorized normal
 deployment and manual API testing. No new migration, provider call, LIVE, SHORT
 accounting, partial exit, scale-in, scheduler, frontend or performance engine.
+
+
+## Mandate-driven first PAPER entry
+
+The explicit authenticated `/api/mandates/{id}/paper-run` boundary composes the unchanged mandate Risk service with `ProductionPaperCommandSource` and `run_paper_execution` on the caller's single transaction connection. Only a genuine approved LONG entry with an exact durable registry package can proceed. The canonical request uses the approval's original timestamp/identities; execution-time expiry is checked with a fresh explicit UTC instant. The existing service consumes the approval once, fills exactly its approved quantity using paper-costs-v1, and persists the normal order/fill/position/accounting records. No sizing, price invention, cash reservation or second wallet exists in this layer.
+
+Mandate provenance remains in the immutable TradeIntent registry payload and is reachable through existing position/order/fill origin references. Receipt recovery precedes any fresh strategy/Risk evaluation: successful retries reconstruct the original event even when approval/market evidence has since expired or the mandate is paused. The recovery path requires complete command, request, consumption, FILLED order, one fill and accounting evidence; incomplete/unknown or ambiguous facts require reconciliation and never trigger blind resubmission. A recovered OPENED result describes the historical opening event, not a claim that the position is currently open. No automatic re-entry or exit is added.
+
+The API transaction includes any newly registered Risk approval plus command and economic persistence, and commits only after result construction. Failure rolls back the whole operation. Source tests use the existing SQL ledger double and genuine deterministic analytical fixtures, not a physical PostgreSQL connection. The original non-mandate execution path and all financial formulas/limits are unchanged.
