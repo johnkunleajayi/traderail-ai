@@ -39,11 +39,14 @@ class TradeSizeConstraints:
     operating_max_quantity: Decimal | None
     minimum_quantity: Decimal | None
     quantity_increment: Decimal | None
+    # Optional server-owned all-in entry budget. Omitted canonically when absent
+    # so pre-existing non-mandate identities and persisted packages remain valid.
+    max_entry_cash_commitment: Decimal | None = field(default=None, metadata={"omit_when_none": True})
     constraints_identity: str = field(init=False)
 
     def __post_init__(self):
         for name in ("platform_max_notional", "operating_max_notional", "platform_max_quantity",
-                     "operating_max_quantity", "minimum_quantity", "quantity_increment"):
+                     "operating_max_quantity", "minimum_quantity", "quantity_increment", "max_entry_cash_commitment"):
             value = getattr(self, name)
             if value is not None:
                 decimal(value, name, positive=name in ("minimum_quantity", "quantity_increment"))

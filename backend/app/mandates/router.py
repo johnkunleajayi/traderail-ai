@@ -1,11 +1,17 @@
 """Authenticated user-intent API. No trading action is reachable here."""
 from uuid import UUID
+from datetime import datetime
+from app.mandate_eligibility.contracts import EligibilityResult
+from app.mandate_eligibility.service import inspect_eligibility, resolution_time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.db.session import get_session
 from app.users.models import User
+from app.mandate_strategy.contracts import MandateEvaluationError, MandateObservationResult
+from app.mandate_strategy.service import evaluate_mandate
+from app.mandate_risk.contracts import MandateRiskResult, MandateRiskError
 from . import service
 from .domain import MandateError, MandateStatus
 from .schemas import MandateIntent, MandateResponse, LifecycleAction
@@ -74,3 +80,47 @@ def pause_mandate(mandate_id: UUID, payload: LifecycleAction = LifecycleAction()
 @router.post("/{mandate_id}/retire", response_model=MandateResponse)
 def retire_mandate(mandate_id: UUID, payload: LifecycleAction = LifecycleAction(), user: User = Depends(write_permission), db: Session = Depends(get_session)):
     return save(db, lambda: service.transition(db, user.id, mandate_id, MandateStatus.RETIRED))
+
+
+@router.get("/{mandate_id}/eligibility", response_model=EligibilityResult)
+def mandate_eligibility(mandate_id: UUID, user: User = Depends(get_current_user),
+                        db: Session = Depends(get_session), at: datetime = Depends(resolution_time)):
+    try:
+        return inspect_eligibility(db, user.id, mandate_id, resolved_at=at)
+    except MandateError as error:
+        raise HTTPException(error.status, {"code": error.code, "message": str(error)}) from None
+
+
+@router.post("/{mandate_id}/evaluate", response_model=MandateObservationResult)
+def evaluate_mandate_strategy(mandate_id: UUID, payload: LifecycleAction = LifecycleAction(),
+        user: User = Depends(write_permission), db: Session = Depends(get_session),
+        at: datetime = Depends(resolution_time)):
+    try:
+        return evaluate_mandate(db, user.id, mandate_id, evaluated_at=at)
+    except MandateError as error:
+        raise HTTPException(error.status, {"code": error.code, "message": str(error)}) from None
+    except MandateEvaluationError as error:
+        raise HTTPException(409, {"code": error.code, "message": str(error), "reason_codes": error.reasons}) from None
+
+
+@router.post("/{mandate_id}/risk-evaluate", response_model=MandateRiskResult)
+def evaluate_mandate_risk(mandate_id: UUID, payload: LifecycleAction = LifecycleAction(),
+        user: User = Depends(write_permission), db: Session = Depends(get_session),
+        at: datetime = Depends(resolution_time)):
+    from app.mandate_risk.service import evaluate
+    try:
+        result = evaluate(db, user.id, mandate_id, evaluated_at=at)
+        db.commit()
+        return result
+    except MandateRiskError as error:
+        db.rollback()
+        raise HTTPException(error.status, {"code": error.code, "message": str(error)}) from None
+    except MandateError as error:
+        db.rollback()
+        raise HTTPException(error.status, {"code": error.code, "message": str(error)}) from None
+    except MandateEvaluationError as error:
+        db.rollback()
+        raise HTTPException(409, {"code": error.code, "message": str(error), "reason_codes": error.reasons}) from None
+    except Exception:
+        db.rollback()
+        raise

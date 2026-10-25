@@ -53,7 +53,8 @@ def encode(value):
     if isinstance(value,timedelta):return ['duration',(value.days*86400+value.seconds)*1000000+value.microseconds]
     if isinstance(value,UUID):return ['uuid',str(value)]
     if is_dataclass(value) and not isinstance(value,type):
-        return ['record',_name(type(value)),{f.name:encode(getattr(value,f.name)) for f in fields(value)}]
+        return ['record',_name(type(value)),{f.name:encode(getattr(value,f.name)) for f in fields(value)
+            if not (f.metadata.get("omit_when_none") and getattr(value,f.name) is None)}]
     if isinstance(value,Mapping):
         pairs=[[encode(k),encode(v)] for k,v in value.items()]
         return ['map',sorted(pairs,key=lambda p:json.dumps(p[0],sort_keys=True))]
@@ -92,11 +93,13 @@ def decode(node):
         kind=types().get(node[1])
         if kind is None or not is_dataclass(kind):raise ValueError('Unknown registry record')
         fs=fields(kind)
-        if set(node[2])!={f.name for f in fs}:raise ValueError('Registry record fields differ')
+        known={f.name for f in fs}
+        required={f.name for f in fs if not f.metadata.get('omit_when_none')}
+        if not required<=set(node[2])<=known:raise ValueError('Registry record fields differ')
         if node[1]=='app.strategies.configuration.StrategyDefinition':
             result=kind(**{name:decode(node[2][name]) for name in ('family','version','parameters')})
         else:
-            result=kind(**{f.name:decode(node[2][f.name]) for f in fs if f.init})
+            result=kind(**{f.name:decode(node[2][f.name]) for f in fs if f.init and f.name in node[2]})
         if encode(result)!=node:raise ValueError('Registry derived fields or identities differ')
         return result
     raise ValueError('Malformed registry tag')

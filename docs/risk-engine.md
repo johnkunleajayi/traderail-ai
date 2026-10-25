@@ -800,3 +800,10 @@ exit authorization. Entry approval cannot authorize exit. Conservative Risk gate
 may reject a close; no emergency-exit exception is introduced. Execution never
 evaluates strategy. See execution-engine.md for transaction/accounting semantics
 and the explicitly deferred physical PostgreSQL verification.
+
+
+## Additional server-owned entry commitment ceiling
+
+`TradeSizeConstraints.max_entry_cash_commitment` is an optional exact Decimal ceiling for mandate-controlled entry capital. It extends the existing trade-risk sizing boundary, not the gate set or Risk profile thresholds. Risk bounds its computed `available_cash_limit` by this ceiling in addition to real snapshot cash/equity, and uses the existing conservative quantity calculation and projection checks. The authoritative snapshot is unchanged.
+
+For LONG, required entry cash is modeled adverse entry price times quantity plus modeled entry fee. Spread/slippage are already included in the modeled price. Future exit costs continue to affect potential-loss sizing but are excluded from the entry commitment budget. `None` preserves non-mandate behavior and canonical identities/persisted encoding; zero permits no positive size; negative, non-finite and non-Decimal caps reject. Present caps bind assumptions and final approval identities through the existing manifest. No new Risk gate, production threshold, fee model or execution authority is introduced.

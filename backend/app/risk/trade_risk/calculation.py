@@ -92,6 +92,10 @@ def _calculate(intent, configuration, snapshot, assumptions):
             notional = min(notional, cap)
     # No borrowing or short-sale-proceeds reuse. SHORT uses the same conservative research reserve.
     cash = min(snapshot.available_cash, snapshot.equity)
+    if constraints.max_entry_cash_commitment is not None:
+        # Unit entry cash already includes adverse spread/slippage and entry fee,
+        # but not exit costs. This caps sizing, never the authoritative snapshot.
+        cash = min(cash, constraints.max_entry_cash_commitment)
     candidates = {
         SizingConstraint.RISK_BUDGET: raw,
         SizingConstraint.NOTIONAL_LIMIT: floor_ratio(notional, max(model.assumed_entry_price, model.modeled_adverse_entry_price)),

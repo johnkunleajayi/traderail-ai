@@ -80,7 +80,8 @@ def values(value, *, wire=False):
             raise ValueError("Non-finite Decimal")
         return format(value, "f") if wire else value
     if is_dataclass(value) and not isinstance(value, type):
-        return {f.name: values(getattr(value, f.name), wire=wire) for f in fields(value)}
+        return {f.name: values(getattr(value, f.name), wire=wire) for f in fields(value)
+                if not (f.metadata.get("omit_when_none") and getattr(value, f.name) is None)}
     if isinstance(value, Mapping):
         return {key: values(item, wire=wire) for key, item in value.items()}
     if isinstance(value, (tuple, list)):
@@ -89,7 +90,8 @@ def values(value, *, wire=False):
 
 
 def seal(instance, namespace, field_name):
-    payload = {f.name: values(getattr(instance, f.name)) for f in fields(instance) if f.init}
+    payload = {f.name: values(getattr(instance, f.name)) for f in fields(instance) if f.init
+               and not (f.metadata.get("omit_when_none") and getattr(instance, f.name) is None)}
     object.__setattr__(instance, field_name, fingerprint("risk." + namespace + "/v1", canonical_json(payload)))
 
 

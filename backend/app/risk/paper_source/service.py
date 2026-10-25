@@ -55,7 +55,7 @@ def owned_untouched_book(c,user_id):
     return book
 
 
-def assemble(c,user_id,at):
+def assemble(c,user_id,at,*,proposal_context=None,size_constraints=None):
     """Return inputs or genuine NO_TRADE; never use browser financial values."""
     at=timestamp(at)
     if (c.dialect.name!='postgresql' or not c.in_transaction()
@@ -71,7 +71,9 @@ def assemble(c,user_id,at):
     until=min(market.expires_at,at+config.operating_limits.max_approval_age)
     intent=create_adaptive_trend_intent(scope=scope,observation=observation,decision=decision,
         market_context=market,created_at=at,expires_at=until)
-    intent=replace(intent,entry_context={**intent.entry_context,'paper_cost_policy':COST_VERSION,
+    if proposal_context and set(proposal_context).intersection((*intent.entry_context,'paper_cost_policy','paper_activation_policy')):
+        raise PaperEvidenceUnavailable('Proposal provenance cannot override canonical analytical evidence')
+    intent=replace(intent,entry_context={**intent.entry_context,**(proposal_context or {}),'paper_cost_policy':COST_VERSION,
         'paper_activation_policy':ACTIVATION_VERSION})
     old=c.execute(select(initializations).where(initializations.c.portfolio_id==book.portfolio_id)).mappings().one_or_none()
     if old is None:
@@ -100,7 +102,7 @@ def assemble(c,user_id,at):
     drawdown=DrawdownEvidence(scope,snapshot.snapshot_identity,valuation,book.cash_balance,book.cash_balance,
         RiskState.NORMAL,initialized_at,at,until,digest('paper-initial-drawdown/v1',{'book':book.state_identity,'initialized_at':initialized_at}))
     assumptions=SizingAssumptions(intent.reference_price,market,config.operating_limits.max_trade_risk_fraction,
-        COSTS,CONSTRAINTS,None)
+        COSTS,CONSTRAINTS if size_constraints is None else size_constraints,None)
     return RiskEvaluationInputs(intent,config,snapshot,market,at,assumptions,PORTFOLIO_POLICY,context,
         STATE_POLICY,drawdown,SAFETY_POLICY,inventory,lifecycle,health),decision
 
