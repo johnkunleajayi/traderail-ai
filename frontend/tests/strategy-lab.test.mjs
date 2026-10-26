@@ -155,7 +155,7 @@ test('invalid JSON success is not substituted',async()=>{
 })
 test('navigation is authenticated, lazy, preserves workspace and resets research on logout',()=>{
   const source=readFileSync(resolve(frontend,'src/components/AuthExperience.tsx'),'utf8')
-  assert.match(source,/Workspace navigation/); assert.match(source,/>Strategy Lab<\/button>/)
+  assert.match(source,/Workspace navigation/); assert.match(source,/<span>Strategy Lab<\/span>/)
   assert.ok(source.indexOf('if (!user) return') < source.indexOf('Workspace navigation'))
   assert.match(source,/lazy\(\(\) => import\('\.\.\/strategy-lab\/StrategyLab'\)\)/)
   assert.match(source,/hidden=\{view !== 'workspace'\}/); assert.match(source,/labOpened &&/)

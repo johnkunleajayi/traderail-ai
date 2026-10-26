@@ -187,7 +187,7 @@ test('expired session returns to existing authentication and does not fabricate 
 test('navigation remains authenticated, lazy and resets mandate state at sign out',()=>{
   const source=readFileSync(resolve(root,'src/components/AuthExperience.tsx'),'utf8')
   assert.match(source,/lazy\(\(\) => import\('..\/mandates\/MandateWorkspace'\)\)/)
-  assert.match(source,/Trading Mandate<\/button>/)
+  assert.match(source,/<span>Trading Mandates<\/span>/)
   assert.match(source,/setMandatesOpened\(false\)/)
   assert.match(source,/hidden=\{view !== 'mandates'\}/)
 })
@@ -198,7 +198,7 @@ test('scoped responsive styles, keyboard controls and no Risk/execution connecti
   for(const file of readdirSync(resolve(root,'src/mandates')).filter(name=>/\.tsx?$/.test(name))){
     const source=readFileSync(resolve(root,'src/mandates',file),'utf8')
     assert.doesNotMatch(source,/\/api\/(risk|paper|market-data|strategy-lab)|parseFloat\(|toFixed\(/)
-    if(file!=='api.ts')assert.doesNotMatch(source,/fetch\(/)
+    if(!['api.ts','performance.ts'].includes(file))assert.doesNotMatch(source,/fetch\(/)
   }
 })
 test('paused edits retain exact capital and address the existing mandate rather than creating another',async()=>{

@@ -23,6 +23,6 @@ export default function PaperPortfolioSummary({ onSessionExpired }: { onSessionE
       : !portfolio ? <p role="status">Loading your Paper Portfolio…</p>
       : <><div className="paper-balance"><span className="paper-balance-label">Cash balance</span><strong>{formatVirtualUsdt(portfolio.cash_balance)}</strong><span>Virtual {portfolio.base_currency}</span></div><div className="paper-portfolio-details"><p>Starting virtual capital <strong>{formatVirtualUsdt(portfolio.starting_balance)}</strong></p><p>Status <strong>{portfolio.status === 'active' ? 'Active' : 'Disabled'}</strong></p></div></>}
     <p className="paper-money-notice">Simulated money only. This balance is not real money and cannot be withdrawn.</p>
-    <p className="paper-boundary">Separate from any future LIVE account. Trading is not yet available.</p>
+    <p className="paper-boundary">Portfolio cash is distinct from mandate allocation and performance. This Paper environment remains separate from Live.</p>
   </Card>
 }
