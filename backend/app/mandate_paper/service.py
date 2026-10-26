@@ -1,5 +1,5 @@
 """One explicit owner command joins existing Risk and PAPER transactions.
-Completed facts recover before strategy/CASH checks; unknown facts never resubmit.
+Completed entry facts identify the canonical managed position; unknown facts never resubmit.
 """
 from contextlib import contextmanager
 from collections.abc import Mapping
@@ -125,14 +125,15 @@ def stopped(result):
 
 
 def run(db,user_id,mandate_id,*,evaluated_at,clock):
-    owned(db,user_id,mandate_id,lock=True)
+    mandate=owned(db,user_id,mandate_id,lock=True)
     c=db.connection()
     try:
-        # First-entry boundary: recovery is an immutable historical fact, not a
-        # new evaluation or entry. It works after expiry/NO_TRADE/PAUSED too.
+        # An acquired mandate position is managed, never entered a second time.
+        # Completed close receipts recover before fresh strategy/Risk evaluation.
         prior=completed_entry(c,user_id,mandate_id)
         if prior is not None:
-            return execute_entry(c,prior,user_id,mandate_id,at=timestamp(clock()),reused=True)
+            from .positions import manage
+            return manage(db,c,mandate,prior,user_id,mandate_id,evaluated_at=evaluated_at,clock=clock)
         result=evaluate_risk(db,user_id,mandate_id,evaluated_at=evaluated_at)
         if result.status is not MandateRiskStatus.APPROVED:
             return stopped(result)

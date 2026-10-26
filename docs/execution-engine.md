@@ -763,3 +763,31 @@ The explicit authenticated `/api/mandates/{id}/paper-run` boundary composes the 
 Mandate provenance remains in the immutable TradeIntent registry payload and is reachable through existing position/order/fill origin references. Receipt recovery precedes any fresh strategy/Risk evaluation: successful retries reconstruct the original event even when approval/market evidence has since expired or the mandate is paused. The recovery path requires complete command, request, consumption, FILLED order, one fill and accounting evidence; incomplete/unknown or ambiguous facts require reconciliation and never trigger blind resubmission. A recovered OPENED result describes the historical opening event, not a claim that the position is currently open. No automatic re-entry or exit is added.
 
 The API transaction includes any newly registered Risk approval plus command and economic persistence, and commits only after result construction. Failure rolls back the whole operation. Source tests use the existing SQL ledger double and genuine deterministic analytical fixtures, not a physical PostgreSQL connection. The original non-mandate execution path and all financial formulas/limits are unchanged.
+
+
+## Mandate position management and exit
+
+The explicit mandate paper-run adapter now manages its acquired canonical LONG
+position. It reuses the existing position-aware `assemble_close` analysis and
+four-gate registered Risk response, then the unchanged production command source
+and Paper close service. HOLD has no economic effects; rejected exit Risk cannot
+execute. A genuine approved EXIT_LONG uses a fresh authorization for the exact
+held quantity, never the consumed entry approval. Acquisition provenance is
+preserved through the opening registry, intent, decision, request/order/fill and
+canonical position; exit provenance links that same position and opening registry.
+
+Accounting is unchanged: BUY debits modeled entry notional plus fee; SELL credits
+modeled exit notional less fee. Gross realized P&L uses reference notional change;
+net uses modeled exit notional less entry modeled cost basis and both fees.
+Spread/slippage remain in modeled prices and are not charged again. Mandate
+allocation remains context; cash belongs to the authoritative USDT portfolio.
+
+One caller-owned transaction and existing database row locks cover close Risk
+registration and all execution/accounting effects. Closed-receipt recovery uses
+original command identities/instant and never evaluates a new strategy or approval.
+Incomplete/UNKNOWN artifacts require reconciliation; a completed close never
+causes automatic re-entry. See trading-mandates.md for position result states,
+paused/retired historical recovery and explicit freshness behavior. No financial
+formula, Risk threshold, cost policy, position schema or non-mandate close behavior
+is changed. SQL ledger tests are source/service verification, not physical
+PostgreSQL concurrency proof; no database connection is made for this milestone.

@@ -12,7 +12,7 @@ from app.users.models import User
 from app.mandate_strategy.contracts import MandateEvaluationError, MandateObservationResult
 from app.mandate_strategy.service import evaluate_mandate
 from app.mandate_risk.contracts import MandateRiskResult, MandateRiskError
-from app.mandate_paper.contracts import PaperRunResult
+from app.mandate_paper.contracts import PositionRunResult, PaperRunResult
 from app.mandate_paper.service import execution_clock
 from . import service
 from .domain import MandateError, MandateStatus
@@ -128,7 +128,7 @@ def evaluate_mandate_risk(mandate_id: UUID, payload: LifecycleAction = Lifecycle
         raise
 
 
-@router.post("/{mandate_id}/paper-run", response_model=PaperRunResult)
+@router.post("/{mandate_id}/paper-run", response_model=PaperRunResult | PositionRunResult)
 def run_mandate_paper(mandate_id: UUID, payload: LifecycleAction = LifecycleAction(),
         user: User = Depends(write_permission), db: Session = Depends(get_session),
         at: datetime = Depends(resolution_time), clock = Depends(execution_clock)):

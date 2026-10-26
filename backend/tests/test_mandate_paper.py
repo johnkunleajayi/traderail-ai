@@ -147,6 +147,7 @@ def test_risk_rejection_never_executes(api,monkeypatch):
 
 def test_successful_retry_recovers_after_expiry_without_strategy_or_risk(api,monkeypatch):
     a=api();first=post(a);assert first.status_code==200,first.text
+    a.db.rows['trading_mandates'][0]['status']='PAUSED';a.session.saved=deepcopy(a.db.rows)
     state=deepcopy(a.db.rows);original=first.json()
     a.now[0]+=timedelta(days=2);a.executed[0]=a.now[0]
     def no_new_decision(*a,**k):raise AssertionError('Recover committed fact, not evaluate/resize')
@@ -333,6 +334,7 @@ for kind in ('long_profit','short_profit','no_trades'):
     result=runner.run(session,USER,MID,evaluated_at=at,clock=lambda:at+timedelta(seconds=1))
     session.commit();outputs.append(result.model_dump(mode='json'))
     if result.status.value=='PAPER_EXECUTED':
+        db.rows['trading_mandates'][0]['status']='PAUSED'
         retry=runner.run(session,USER,MID,evaluated_at=at+timedelta(days=2),clock=lambda:at+timedelta(days=2))
         outputs.append(retry.model_dump(mode='json'))
 print(json.dumps(outputs,sort_keys=True))

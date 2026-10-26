@@ -114,3 +114,54 @@ This is a bounded first-entry endpoint, not re-entry or position management. It 
 The frozen response distinguishes NO_TRADE, RISK_REJECTED and PAPER_EXECUTED. It exposes mandate, eligibility and strategy-observation/decision references, original capital context, Risk/authorization identities and approved quantity where applicable. PAPER_EXECUTED reuses the existing safe execution response for request/order/fill/position identities, exact executed quantity, price/notional/fee, cash_after and execution timestamp. Internal credentials and raw Risk engineering evidence are not returned. Position origin intent/decision and opening request/order/fill references link back to the immutable registry TradeIntent's mandate provenance; no mandate-specific position or accounting table exists.
 
 No migration is needed. Eligibility, strategy algorithms, Risk gates/thresholds, cost assumptions, Paper accounting and the non-mandate execution API remain unchanged. There is no LIVE/Quidax venue path, SHORT, leverage, sub-wallet, withdrawal, automatic exit or mandate-aware position management. Existing genuine EXIT_LONG plus fresh Risk authorization remains the separate exit foundation. Tests exercise real engines/services with the established rollback-capable SQL ledger double; physical PostgreSQL locking, constraints and concurrent connections are not proven by that double.
+
+
+## Explicit mandate PAPER position management
+
+`POST /api/mandates/{id}/paper-run` is now position-aware. It remains an empty,
+owner-authenticated, exact-Origin command with no-store responses. No scheduler,
+provider refresh or client financial inputs are added. Without acquisition facts
+it uses the unchanged entry pipeline. With complete acquisition facts it follows
+the immutable registry mandate provenance through the opening request/order/fill
+to the canonical Paper position; it cannot pyramid or create another entry.
+
+For an ACTIVE eligible mandate with an OPEN LONG, the adapter reuses
+`risk.paper_source.close.assemble_close`: fresh canonical completed BTC/USDT 1h
+history, unchanged intelligence/regime/Adaptive Trend, explicit LONG thesis context.
+`NO_ACTION` returns POSITION_HELD, without creating a close intent, authorization,
+order, fill or accounting entry. Stale, missing or inconsistent evidence returns
+a controlled 409. No hidden refresh or threshold adjustment is performed.
+
+A genuine EXIT_LONG reuses the same four-gate close Risk evaluation and durable
+registry as `/api/risk/paper-close-evaluations`, on the caller's transaction
+connection. EXIT_RISK_REJECTED creates no close authorization or economic effect.
+APPROVED supplies a new intent, decision and authorization bound to the canonical
+position's full opening quantity. The consumed entry approval never permits exit.
+Execution uses the existing ProductionPaperCommandSource and Paper service at a
+fresh explicit execution instant. Expiry, book/evidence/cost/quantity checks,
+single-use consumption, SELL fill and full-close accounting remain unchanged.
+
+POSITION_CLOSED exposes the existing execution result: order/fill/position IDs,
+quantity, fee, gross/net realized P&L and resulting global portfolio cash. The
+position result additionally links the opening registry/intent/decision/eligibility
+identities, exit strategy input/decision and UTC timestamps. Allocation is original
+mandate context, not a separate wallet; it is not recalculated as close quantity.
+
+The mandate row, portfolio and position are locked in the one outer transaction.
+New close authorization, command, consumption, order/fill, cash/position updates
+and receipt either commit together or roll back. Completed close recovery requires
+complete canonical command/request/consumption/FILLED order/single fill/receipt and
+closing-request linkage. It returns the stored close after expiry without another
+strategy evaluation, authorization, cash credit or P&L realization. Ambiguous or
+UNKNOWN facts return reconciliation-required; they never resubmit. Closed positions do not automatically re-enter. For a PAUSED/RETIRED mandate with an open
+position, only the historical entry receipt is recovered; no new evaluation or
+close is initiated. A completed close remains recoverable regardless of mandate
+status. This preserves historical receipt recovery while making ACTIVE calls
+manage fresh position evidence rather than replaying the entry event.
+
+This extends the earlier first-entry-only paper-run scope. Strategy-only evaluate
+and entry-only risk-evaluate retain their existing boundaries. No migration,
+position table, new Risk/SELL/P&L engine, partial close, scale-in, SHORT, leverage,
+LIVE, frontend or background automation is introduced. Source tests use real
+services over a guarded SQL ledger double; physical PostgreSQL concurrency and
+trigger verification are not claimed by those tests.
