@@ -165,3 +165,96 @@ position table, new Risk/SELL/P&L engine, partial close, scale-in, SHORT, levera
 LIVE, frontend or background automation is introduced. Source tests use real
 services over a guarded SQL ledger double; physical PostgreSQL concurrency and
 trigger verification are not claimed by those tests.
+
+
+## Mandate performance and capital (read-only v1)
+
+`GET /api/mandates/{id}/performance` is owner-authenticated, no-store and read-only.
+It accepts no financial command. A separate fresh Session (not the authentication
+Session) starts a PostgreSQL READ ONLY, REPEATABLE READ transaction before its
+first SELECT. This gives one coherent view across registry, order/fill, position
+and accounting records without locking/mutating trading state. No commit, refresh,
+strategy/Risk evaluation, fill pricing, authorization or execution occurs.
+
+Attribution starts with immutable `mandate_provenance` in an owned entry registry
+package. It reconciles the exact intent/decision, approved request, command,
+consumption, FILLED order, fill, canonical position and economic receipt. The
+close must reference the same opening registry and position and have a distinct
+canonical close authorization. Financial receipt metadata is checked against its
+losslessly reconstructed result. Incomplete, ambiguous, orphaned or inconsistent
+history produces financial_state UNAVAILABLE, null metrics and an explicit reason;
+a failed database read produces controlled 503, never an inferred zero. Explicitly
+non-mandate origins and other mandates' verified origins are excluded. Portfolio
+cash and unrelated activity are never used as mandate value.
+
+Amounts are exact USDT Decimal strings. Capital fields mean:
+
+- allocation: current editable mandate intent, not a balance.
+- capital_exposed: open acquisition modeled notional (historical cost exposure).
+- capital_committed: open acquisition notional plus its incurred entry fee.
+- available_unallocated: max(0, allocation - capital_committed), an unused ceiling,
+  not spendable cash, reserved funds or a mandate wallet. Other mandates can share
+  portfolio cash; these unused ceilings must not be summed as available cash.
+- allocation_shortfall: max(0, capital_committed - current allocation), made
+  explicit if intent was subsequently reduced. No economic record is rewritten.
+- marked_exposure: current quantity times fresh completed-candle mark, distinct
+  from historical exposure/commitment.
+
+realized_pnl aggregates ONLY canonical closed receipts' net_realized_pnl;
+gross_realized_pnl aggregates their canonical gross_realized_pnl. Neither is
+recomputed from another P&L formula. trade_count counts acquired position
+lifecycles, including open positions; completed_trade_count counts closed ones.
+Unused approvals, rejected proposals and unpersisted observations are not trades.
+
+For an open LONG, price_unrealized_pnl = marked_exposure - acquisition modeled
+cost basis. unrealized_pnl is the open economic contribution after incurred entry
+fees: price_unrealized_pnl - open_entry_fees. This is equivalent to existing
+Strategy Lab LONG marked equity, which recognizes open entry fees when incurred;
+here the fee is shown in the open contribution so realized_pnl can remain the
+unaltered sum of canonical completed-trade receipts. No future exit fee/spread/
+slippage is estimated; this is a completed-close mark, not liquidation proceeds.
+When the position closes, its entry fee is already in canonical net realized P&L
+and is no longer included in open_entry_fees. Fees are never counted twice.
+
+current_mandate_value = performance_allocation + realized_pnl + unrealized_pnl.
+return_percentage = (current_mandate_value - performance_allocation) /
+performance_allocation * 100, using existing Decimal division precision (50 digits,
+HALF_EVEN). performance_allocation is the original allocation in immutable entry
+provenance, or current allocation for a verified no-trade mandate. Current intent
+can be edited while paused; allocation_changed explicitly exposes that difference,
+and edits never rewrite the historical return denominator. If multiple acquired
+lifecycles contain differing original allocation baselines, no allocation-flow
+history is invented: performance_allocation/current value/return are unavailable
+with ALLOCATION_BASELINE_HISTORY_AMBIGUOUS. Attributable realized P&L and trade
+history can still be reported.
+
+Marks use the canonical active BTC/USDT instrument/assets, BINANCE stored completed
+1h candles, existing candle validation and paper-market-validity-v1's ten-minute
+post-close expiry. No indicator, strategy or provider call is required. The
+latest valid completed close is a measurement, not an executable quote. Evidence
+identity, source, priced_at and valid_until are explicit. STALE/UNAVAILABLE marks
+supply no usable price; open unrealized P&L/current value/return become null while
+historical commitment and realized P&L remain available. No open positions means
+valuation NOT_REQUIRED and zero open contribution. Reporting never renews an
+expired approval.
+
+Mandate drawdown is explicitly UNAVAILABLE: historical mandate equity/high-water
+marks and capital-change history are not persisted. Portfolio Risk drawdown is
+not substituted for mandate drawdown; sparse entry/exit receipts cannot justify
+an intratrade peak. Historical HOLD/NO_TRADE and close strategy reason text are
+also not durably retained by the current contracts; reporting does not regenerate
+a strategy decision to invent them. Entry reasons are returned where persisted;
+close reason text remains null, with original strategy input/decision identities.
+
+Status is a projection: DRAFT/PAUSED/RETIRED preserve mandate state; otherwise
+NO_TRADES_YET, POSITION_OPEN or CLOSED derive from verified economic records.
+This does not claim the latest strategy said HOLD or NO_TRADE. Trade history
+includes canonical entry/exit quantities, prices, fees, P&L, strategy/configuration,
+eligibility/observation, intent/Risk/authorization, client-order/order/fill,
+position and accounting identities. Projection identity uses existing canonical
+hashing, typed Decimal values and UTC instants, with deterministic trade ordering.
+
+No new table, migration, ledger, wallet, Risk rule, cost assumption, trading
+behavior, frontend, scheduler, provider or LIVE capability is added. Source tests
+use guarded SQL-ledger fixtures produced by the existing real Paper lifecycle;
+physical PostgreSQL snapshot/constraint verification is not claimed by those tests.

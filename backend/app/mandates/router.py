@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from app.mandate_eligibility.contracts import EligibilityResult
 from app.mandate_eligibility.service import inspect_eligibility, resolution_time
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
@@ -13,6 +13,7 @@ from app.mandate_strategy.contracts import MandateEvaluationError, MandateObserv
 from app.mandate_strategy.service import evaluate_mandate
 from app.mandate_risk.contracts import MandateRiskResult, MandateRiskError
 from app.mandate_paper.contracts import PositionRunResult, PaperRunResult
+from app.mandate_performance.contracts import Performance
 from app.mandate_paper.service import execution_clock
 from . import service
 from .domain import MandateError, MandateStatus
@@ -149,3 +150,19 @@ def run_mandate_paper(mandate_id: UUID, payload: LifecycleAction = LifecycleActi
     except Exception:
         db.rollback()
         raise
+
+
+@router.get("/{mandate_id}/performance", response_model=Performance)
+def mandate_performance(mandate_id: UUID, response: Response,
+        user: User = Depends(get_current_user), db: Session = Depends(get_session, use_cache=False),
+        at: datetime = Depends(resolution_time)):
+    # Authentication uses its existing session; reporting needs a fresh read-only snapshot.
+    from app.mandate_performance.service import inspect
+    response.headers['Cache-Control']='no-store'
+    try:
+        return inspect(db,user.id,mandate_id,evaluated_at=at)
+    except MandateError as error:
+        raise HTTPException(error.status,{'code':error.code,'message':str(error)},headers={'Cache-Control':'no-store'}) from None
+    except Exception:
+        raise HTTPException(503,{'code':'mandate_performance_unavailable',
+            'message':'Authoritative mandate reporting evidence is unavailable'},headers={'Cache-Control':'no-store'}) from None
