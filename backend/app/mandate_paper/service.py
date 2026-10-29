@@ -124,7 +124,7 @@ def stopped(result):
         reason_codes=tuple(code.value for code in (result.risk.blocking_reason_codes if result.risk else s.reason_codes)))
 
 
-def run(db,user_id,mandate_id,*,evaluated_at,clock):
+def run(db,user_id,mandate_id,*,evaluated_at,clock,expected_candle=None):
     mandate=owned(db,user_id,mandate_id,lock=True)
     c=db.connection()
     try:
@@ -133,8 +133,11 @@ def run(db,user_id,mandate_id,*,evaluated_at,clock):
         prior=completed_entry(c,user_id,mandate_id)
         if prior is not None:
             from .positions import manage
-            return manage(db,c,mandate,prior,user_id,mandate_id,evaluated_at=evaluated_at,clock=clock)
+            return manage(db,c,mandate,prior,user_id,mandate_id,evaluated_at=evaluated_at,clock=clock,
+                **({"expected_candle":expected_candle} if expected_candle is not None else {}))
         result=evaluate_risk(db,user_id,mandate_id,evaluated_at=evaluated_at)
+        if expected_candle is not None:
+            expected_candle.require_market(result.strategy.market)
         if result.status is not MandateRiskStatus.APPROVED:
             return stopped(result)
         package=load_authorization(c,result.authorization.registry_identity,user_id=user_id)

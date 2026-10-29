@@ -1,0 +1,7 @@
+{
+  "disposable": true,
+  "operator_confirmed_child": false,
+  "child_branch_id": "br-REPLACE-with-new-disposable-child-id",
+  "parent_branch_id": "br-REPLACE-with-development-parent-id",
+  "target_sha256": "REPLACE-with-offline-target-binding"
+}

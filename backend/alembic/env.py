@@ -1,6 +1,7 @@
 from alembic import context
 from sqlalchemy import create_engine, pool
 from app.core.config import get_settings
+from app.mandate_runner.models import work as paper_mandate_work  # noqa: F401
 from app.db.base import Base
 from app.mandates.models import TradingMandate  # noqa: F401
 from app.risk.paper_switches import states as paper_switch_states  # noqa: F401

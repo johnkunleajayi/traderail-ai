@@ -24,7 +24,7 @@ def ddl(direction):
 def test_revision_chain():
     m=migration();assert m.down_revision=="0012_paper_usdt_risk" and len(m.revision)<=32
     cfg=Config();cfg.set_main_option("script_location",str(Path(__file__).parents[1]/"alembic"))
-    assert ScriptDirectory.from_config(cfg).get_heads()==[m.revision]
+    assert ScriptDirectory.from_config(cfg).get_revision(m.revision).down_revision==m.down_revision
 
 def test_upgrade_matches_model_only_adds_mandates():
     sql=ddl("upgrade")

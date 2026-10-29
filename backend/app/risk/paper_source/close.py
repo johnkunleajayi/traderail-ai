@@ -72,7 +72,7 @@ def history_state(initial,position,entry,book,candles):
     return peak,peak_at,state
 
 
-def assemble_close(c,user_id,position_id,at):
+def assemble_close(c,user_id,position_id,at,*,expected_candle=None):
     from .service import safety_evidence
     require(user_id,UUID,'authenticated owner');require(position_id,UUID,'position id');at=timestamp(at)
     if (c.dialect.name!='postgresql' or not c.in_transaction()
@@ -102,6 +102,10 @@ def assemble_close(c,user_id,position_id,at):
     if entry.result_identity!=receipts[0]['result_identity']:
         raise PaperEvidenceUnavailable('Acquisition receipt mismatch')
     context,candles=read_candles(c,at=at)
+    if expected_candle is not None:
+        if not candles:
+            raise PaperEvidenceUnavailable("Expected completed position candle is unavailable")
+        expected_candle.require(context,candles[-1])
     observation,decision,market=analyze(context,candles,at=at,position_state=PositionState.LONG)
     if (context!=origin.authorization.intent.instrument or observation.definition!=origin.authorization.intent.strategy
             or (pos['strategy_family'],pos['strategy_version'],pos['strategy_configuration_identity'])!=(

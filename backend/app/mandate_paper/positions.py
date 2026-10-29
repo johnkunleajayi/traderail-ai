@@ -109,7 +109,7 @@ def execute_close(c, origin, position, package, user_id, mandate_id, at, *, reus
         approved_quantity=package.authorization.quantity,execution=EntryExecution.model_validate(response.model_dump()),reused=reused)
 
 
-def manage(db,c,mandate,origin,user_id,mandate_id,*,evaluated_at,clock):
+def manage(db,c,mandate,origin,user_id,mandate_id,*,evaluated_at,clock,expected_candle=None):
     from .service import bound_request, execute_entry
     opening=bound_request(origin,user_id,mandate_id)
     book=capture_book(c,origin.authorization.intent.scope.portfolio_id,lock=True)
@@ -142,7 +142,8 @@ def manage(db,c,mandate,origin,user_id,mandate_id,*,evaluated_at,clock):
     if eligibility.status is not EligibilityStatus.ELIGIBLE:
         raise PaperRunError('mandate_ineligible','The mandate is not eligible for position management',409)
     try:
-        inputs,decision=assemble_close(c,user_id,position['position_id'],evaluated_at)
+        inputs,decision=assemble_close(c,user_id,position['position_id'],evaluated_at,
+            **({"expected_candle":expected_candle} if expected_candle is not None else {}))
         if inputs is None:
             if decision.decision is not DecisionType.NO_ACTION:
                 reconcile('Unexpected held-position strategy decision')

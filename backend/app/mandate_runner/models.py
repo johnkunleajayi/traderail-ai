@@ -1,0 +1,36 @@
+"""Processing metadata only. Canonical economic truth stays in existing tables."""
+from sqlalchemy import (Table, Column, String, Integer, DateTime, ForeignKey,
+                        CheckConstraint, UniqueConstraint, Index, func)
+from sqlalchemy.dialects.postgresql import UUID
+from app.db.base import Base
+
+work = Table("paper_mandate_work", Base.metadata,
+    Column("work_id", UUID(as_uuid=True), primary_key=True),
+    Column("mandate_id", UUID(as_uuid=True), ForeignKey("trading_mandates.id", ondelete="RESTRICT"), nullable=False),
+    Column("candle_id", UUID(as_uuid=True), ForeignKey("market_candles.id", ondelete="RESTRICT"), nullable=False),
+    Column("runner_version", String(64), nullable=False),
+    Column("state", String(32), nullable=False, server_default="PENDING"),
+    Column("attempts", Integer, nullable=False, server_default="0"),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column("updated_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    Column("last_attempt_at", DateTime(timezone=True)),
+    Column("retry_at", DateTime(timezone=True)),
+    Column("fresh_until", DateTime(timezone=True), nullable=False),
+    Column("outcome_code", String(64)),
+    Column("reason_code", String(64)),
+    Column("eligibility_identity", String(71)),
+    Column("market_evidence_identity", String(71)),
+    Column("registry_identity", String(71), ForeignKey("paper_authorizations.registry_identity", ondelete="RESTRICT")),
+    Column("request_identity", String(71), ForeignKey("execution_requests.request_identity", ondelete="RESTRICT")),
+    Column("position_id", UUID(as_uuid=True), ForeignKey("paper_positions.position_id", ondelete="RESTRICT")),
+    UniqueConstraint("mandate_id", "candle_id", name="uq_paper_work_mandate_candle"),
+    CheckConstraint("state IN ('PENDING','RETRY_WAIT','COMPLETED','SKIPPED','RECONCILIATION_REQUIRED')", name="ck_paper_work_state"),
+    CheckConstraint("attempts >= 0 AND ((attempts = 0 AND last_attempt_at IS NULL) OR (attempts > 0 AND last_attempt_at IS NOT NULL))", name="ck_paper_work_attempts"),
+    CheckConstraint("updated_at >= created_at AND fresh_until > created_at AND (last_attempt_at IS NULL OR (last_attempt_at >= created_at AND last_attempt_at <= updated_at))", name="ck_paper_work_times"),
+    CheckConstraint("(state = 'RETRY_WAIT' AND retry_at IS NOT NULL AND retry_at >= updated_at AND retry_at < fresh_until) OR (state <> 'RETRY_WAIT' AND retry_at IS NULL)", name="ck_paper_work_retry"),
+    CheckConstraint("state <> 'COMPLETED' OR attempts > 0", name="ck_paper_work_completed_attempt"),
+    CheckConstraint("state NOT IN ('COMPLETED','SKIPPED','RECONCILIATION_REQUIRED') OR outcome_code IS NOT NULL", name="ck_paper_work_outcome"),
+    CheckConstraint("runner_version ~ '^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$'", name="ck_paper_work_version"),
+    *(CheckConstraint(f"{field} IS NULL OR {field} ~ '^[A-Z][A-Z0-9_]{{0,63}}$'", name="ck_paper_work_"+field) for field in ("outcome_code", "reason_code")),
+    Index("ix_paper_work_due", "state", "retry_at", "fresh_until"),
+)
