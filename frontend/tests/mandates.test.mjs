@@ -198,7 +198,7 @@ test('scoped responsive styles, keyboard controls and no Risk/execution connecti
   for(const file of readdirSync(resolve(root,'src/mandates')).filter(name=>/\.tsx?$/.test(name))){
     const source=readFileSync(resolve(root,'src/mandates',file),'utf8')
     assert.doesNotMatch(source,/\/api\/(risk|paper|market-data|strategy-lab)|parseFloat\(|toFixed\(/)
-    if(!['api.ts','performance.ts'].includes(file))assert.doesNotMatch(source,/fetch\(/)
+    if(!['api.ts','performance.ts','activity.ts'].includes(file))assert.doesNotMatch(source,/fetch\(/)
   }
 })
 test('paused edits retain exact capital and address the existing mandate rather than creating another',async()=>{

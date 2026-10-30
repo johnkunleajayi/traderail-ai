@@ -14,6 +14,7 @@ from app.mandate_strategy.service import evaluate_mandate
 from app.mandate_risk.contracts import MandateRiskResult, MandateRiskError
 from app.mandate_paper.contracts import PositionRunResult, PaperRunResult
 from app.mandate_performance.contracts import Performance
+from app.mandate_performance.activity import Activity, inspect_activity
 from app.mandate_paper.service import execution_clock
 from . import service
 from .domain import MandateError, MandateStatus
@@ -166,3 +167,19 @@ def mandate_performance(mandate_id: UUID, response: Response,
     except Exception:
         raise HTTPException(503,{'code':'mandate_performance_unavailable',
             'message':'Authoritative mandate reporting evidence is unavailable'},headers={'Cache-Control':'no-store'}) from None
+
+
+@router.get("/{mandate_id}/activity", response_model=Activity)
+def mandate_activity(mandate_id: UUID, response: Response,
+        user: User = Depends(get_current_user), db: Session = Depends(get_session, use_cache=False),
+        at: datetime = Depends(resolution_time)):
+    response.headers['Cache-Control']='no-store'
+    try:
+        return inspect_activity(db,user.id,mandate_id,at=at)
+    except MandateError as error:
+        raise HTTPException(error.status,{'code':error.code,'message':str(error)},
+            headers={'Cache-Control':'no-store'}) from None
+    except Exception:
+        raise HTTPException(503,{'code':'paper_activity_unavailable',
+            'message':'Persisted PAPER activity is temporarily unavailable'},
+            headers={'Cache-Control':'no-store'}) from None

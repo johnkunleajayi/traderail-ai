@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowDownRight, ArrowUpRight, ArrowRight, Check, Clock3, FileText, Layers3, RefreshCw, ShieldCheck } from 'lucide-react'
 import { MandateApiError } from './api'
 import { formatFinancial, operatingStatus, readPerformance, tone, utilizationWidth, valuationUsable, type Financial, type MandatePerformance as Report, type PerformanceLeg, type PerformanceTrade } from './performance'
+import MandateActivity from './MandateActivity'
 import type { TradingMandate } from './types'
 
 export function Money({ value, unit = 'USDT', signed = false, digits = 2 }: { value: Financial; unit?: string; signed?: boolean; digits?: number }) {
@@ -56,5 +57,5 @@ export default function MandatePerformance({ mandate, onSessionExpired }: { mand
   // No polling, automatic refresh, timers or trading command is introduced.
   const [,retireSnapshot] = useState(0)
   useEffect(()=>{const retire=()=>retireSnapshot(v=>v+1);window.addEventListener('focus',retire);return()=>window.removeEventListener('focus',retire)},[])
-  return <div className="ws-performance-boundary"><div className="ws-report-toolbar"><span><span className="ws-static-dot"/>Authoritative Paper reporting</span><button className="ws-text-button" disabled={loading} onClick={()=>setAttempt(v=>v+1)}><RefreshCw size={14}/> {loading?'Loading snapshot…':'Refresh report'}</button></div>{loading ? <PerformanceSkeleton/> : error ? <div className="ws-error-state" role="alert"><ShieldCheck size={25}/><h3>Performance is unavailable</h3><p>{error}</p><p>No financial values have been substituted.</p><button className="button button-secondary" onClick={()=>setAttempt(v=>v+1)}>Retry performance <ArrowRight size={15}/></button></div> : report && report.mandate_identity===mandate.id ? <PerformanceView report={report}/> : <div className="ws-error-state" role="status">The report does not match this mandate. Refresh before inspecting its values.</div>}</div>
+  return <div className="ws-performance-boundary"><div className="ws-report-toolbar"><span><span className="ws-static-dot"/>Authoritative Paper reporting</span><button className="ws-text-button" disabled={loading} onClick={()=>setAttempt(v=>v+1)}><RefreshCw size={14}/> {loading?'Loading snapshot…':'Refresh report'}</button></div><MandateActivity key={mandate.id} mandate={mandate} refresh={attempt} onSessionExpired={onSessionExpired}/>{loading ? <PerformanceSkeleton/> : error ? <div className="ws-error-state" role="alert"><ShieldCheck size={25}/><h3>Performance is unavailable</h3><p>{error}</p><p>No financial values have been substituted.</p><button className="button button-secondary" onClick={()=>setAttempt(v=>v+1)}>Retry performance <ArrowRight size={15}/></button></div> : report && report.mandate_identity===mandate.id ? <PerformanceView report={report}/> : <div className="ws-error-state" role="status">The report does not match this mandate. Refresh before inspecting its values.</div>}</div>
 }

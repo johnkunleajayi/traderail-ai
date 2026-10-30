@@ -24,3 +24,7 @@
 .enterprise-workspace .mandate-progress ol{grid-template-columns:minmax(0,1fr)}
 @media(max-width:650px){.enterprise-workspace .mandate-progress ol{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .ws-utilization.is-unknown{background:repeating-linear-gradient(135deg,var(--ws-inset),var(--ws-inset) 6px,var(--ws-line) 6px,var(--ws-line) 7px)}
+
+/* Persisted Paper activity uses the existing workspace theme and surfaces. */
+.ws-activity{padding:24px 0;border-bottom:1px solid var(--ws-line);min-width:0}.ws-activity-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:32px}.ws-evaluation{border-left:3px solid var(--color-accent);padding-left:20px;min-width:0}.ws-evaluation h4{font-size:23px;margin-bottom:12px}.ws-evaluation p{overflow-wrap:anywhere}.ws-evaluation.is-failure{border-color:var(--ws-warning)}.ws-activity-context{border-left:1px solid var(--ws-line);padding-left:24px;min-width:0}.ws-activity-context dl{margin:0}.ws-activity-context dl>div{margin-bottom:16px}.ws-activity-context dt{color:var(--ws-muted)}.ws-activity-context dd{margin:3px 0;font-size:21px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.ws-activity time{font-variant-numeric:tabular-nums}.ws-activity>.ws-subtle{margin-top:18px}
+@media(max-width:650px){.ws-activity-grid{grid-template-columns:minmax(0,1fr);gap:20px}.ws-activity-context{border-left:0;border-top:1px solid var(--ws-line);padding:18px 0 0}.ws-activity{padding:20px 0}.ws-evaluation{padding-left:14px}.ws-evaluation h4{font-size:20px}}
