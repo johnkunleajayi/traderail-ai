@@ -49,12 +49,12 @@ def test_two_runner_stale_discovery_claims_cannot_duplicate_entry(pipeline,monke
     a=prepared(pipeline())
     # Force both independent runners to act on an advisory stale due snapshot.
     # The real Step 4 repository/transaction remains authoritative.
-    monkeypatch.setattr(process_module,'due',lambda *a:True)
+    monkeypatch.setattr(process_module,'due',lambda *a,**kwargs:True)
     first=a.runner();second=a.runner()
     assert first.poll_once()==1 and second.poll_once()==1
     assert len(a.db.rows['paper_mandate_work'])==1
     assert all(n==1 for n in economic_counts(a.db).values())
-    assert a.events[-1][1]['reused'] is True
+    assert [fields for event,fields in a.events if event=='CYCLE_RESULT'][-1]['reused'] is True
     assert any('FOR UPDATE' in str(q) for q in a.db.statements if hasattr(q,'_for_update_arg') and q._for_update_arg is not None)
 
 def test_restart_does_not_invoke_completed_no_trade(pipeline):
@@ -173,3 +173,14 @@ def test_live_mandate_is_never_discovered(pipeline):
     forbidden=Mock(side_effect=AssertionError('PAPER runner must never process LIVE'))
     assert a.runner(processor=forbidden).poll_once()==0
     forbidden.assert_not_called()
+
+
+
+def test_real_admission_observes_completed_work_without_mutating_ledger(pipeline):
+    a=prepared(pipeline('no_trades'));runner=a.runner()
+    assert runner.poll_once()==1
+    before=deepcopy(a.db.rows);reasons=[]
+    assert not due(a.process_sessions,Candidate(MID,USER),a.now,reasons=reasons)
+    assert reasons==['ALREADY_PROCESSED'] and a.db.rows==before
+    assert runner.poll_once()==0 and a.db.rows==before
+    assert ('POLL_STATUS',{'reason_code':'ALREADY_PROCESSED'}) in a.events

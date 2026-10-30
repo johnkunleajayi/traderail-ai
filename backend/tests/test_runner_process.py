@@ -27,7 +27,7 @@ def h(monkeypatch):
     def page(factory,after,size):
         return tuple(c for c in h.candidates if after is None or c.mandate_id>after)[:size]
     monkeypatch.setattr(p,'discover_page',page)
-    def due(factory,c,at):
+    def due(factory,c,at,*,reasons=None):
         opened,_,until=p.expected_candle(at)
         if at>=until or c.mandate_id in h.barriers:return False
         row=h.records.get((c.mandate_id,opened))
@@ -148,7 +148,8 @@ def test_serve_uses_event_wait_not_busy_loop(h):
 
 def test_discovery_failure_logs_and_returns(h,monkeypatch):
     monkeypatch.setattr(p,'discover_page',Mock(side_effect=SQLAlchemyError('private connection')))
-    assert h.runner.poll_once()==0 and h.events[-1][0]=='DISCOVERY_FAILED'
+    assert h.runner.poll_once()==0
+    assert any(event=='DISCOVERY_FAILED' for event,fields in h.events)
 
 def test_engine_timeouts_are_explicit(monkeypatch):
     factory=Mock(return_value=object());monkeypatch.setattr(runtime,'create_engine',factory)
@@ -291,7 +292,7 @@ def test_no_fastapi_startup_hook_or_trading_duplication():
 def test_readonly_admission_failure_can_recover_without_blocking_others(h,monkeypatch):
     original=p.due
     first=h.candidates[0].mandate_id;failed=[False]
-    def admission(factory,candidate,at):
+    def admission(factory,candidate,at,**kwargs):
         if candidate.mandate_id==first and not failed[0]:
             failed[0]=True;raise SQLAlchemyError('private connection')
         return original(factory,candidate,at)
@@ -361,3 +362,81 @@ def test_real_sqlalchemy_begin_orders_configuration_before_transaction_body(monk
                     with c.begin():events.append('APPLICATION_BODY')
                 assert events==['CONFIGURE','APPLICATION_BODY','CONFIGURE','APPLICATION_BODY']
     finally:engine.dispose()
+
+
+
+def test_idle_heartbeat_uses_monotonic_sixty_seconds_without_changing_polling(h,monkeypatch):
+    ticks=[0.0];monkeypatch.setattr(p,'monotonic',lambda:ticks[0])
+    h.now=h.now.replace(minute=20)
+    for tick in (0,15,30,45,60,75,90,105,120):
+        ticks[0]=tick;assert h.runner.poll_once()==0
+    assert [event for event,fields in h.events].count('RUNNER_HEARTBEAT')==3
+    assert [event for event,fields in h.events].count('POLL_STATUS')==1
+    assert h.events[0][1]['reason_code']=='OUTSIDE_CANDLE_FRESHNESS_WINDOW'
+    assert h.calls==[] and h.config.paper_runner_poll_seconds==15
+
+
+@pytest.mark.parametrize('reason,expected',[('INELIGIBLE','NO_ELIGIBLE_MANDATES'),
+    ('ALREADY_PROCESSED','ALREADY_PROCESSED'),('RETRY_WAIT','RETRY_WAIT'),
+    ('RECONCILIATION_OR_TERMINAL_BARRIER','RECONCILIATION_OR_TERMINAL_BARRIER')])
+def test_poll_reports_actual_admission_reason_without_extra_work(h,monkeypatch,reason,expected):
+    def admission(factory,candidate,at,*,reasons=None):
+        reasons.append(reason);return False
+    monkeypatch.setattr(p,'due',admission)
+    assert h.runner.poll_once()==0 and h.calls==[]
+    assert next(fields['reason_code'] for event,fields in h.events if event=='POLL_STATUS')==expected
+
+
+def test_no_active_mandates_is_reported_once_not_every_poll(h):
+    h.candidates=[]
+    h.runner.poll_once();h.runner.poll_once()
+    statuses=[fields for event,fields in h.events if event=='POLL_STATUS']
+    assert statuses==[{'reason_code':'NO_ELIGIBLE_MANDATES'}]
+
+
+def test_evaluation_status_changes_are_immediate_and_no_trade_is_completed(h,monkeypatch):
+    h.runner.poll_once()
+    assert ('POLL_STATUS',{'reason_code':'EVALUATION_COMPLETED'}) in h.events
+    def done(factory,candidate,at,*,reasons=None):
+        reasons.append('ALREADY_PROCESSED');return False
+    monkeypatch.setattr(p,'due',done)
+    h.runner.poll_once();h.runner.poll_once()
+    statuses=[fields['reason_code'] for event,fields in h.events if event=='POLL_STATUS']
+    assert statuses==['EVALUATION_COMPLETED','ALREADY_PROCESSED']
+    assert len(h.calls)==2
+
+
+def test_logging_failure_cannot_suppress_mandate_or_duplicate_completed_evaluation(h):
+    h.runner._emit=Mock(side_effect=OSError('secret logging failure'))
+    assert h.runner.poll_once()==2
+    assert h.runner.poll_once()==0
+    assert not h.runner.suppressed and len(h.calls)==2
+
+
+def test_logging_failure_does_not_skip_uncertain_recovery(h,monkeypatch):
+    h.runner._emit=Mock(side_effect=OSError('secret logging failure'))
+    recovery=Mock(return_value='QUARANTINED');monkeypatch.setattr(p,'recover_uncertain',recovery)
+    h.runner.processor=lambda *args,**kwargs:CycleResult(h.candidates[0].mandate_id,
+        'RECONCILIATION_REQUIRED','DURABLE_STATE_UNAVAILABLE','VERIFY_DURABLE_STATE_BEFORE_RETRY')
+    assert h.runner.poll_once()==2
+    assert recovery.call_count==2 and len(h.runner.suppressed)==2
+    assert h.runner.poll_once()==0 and recovery.call_count==2
+
+
+def test_heartbeat_timestamp_is_utc_and_metadata_is_allowlisted(caplog):
+    with caplog.at_level('INFO',logger='traderail.paper_runner'):
+        runtime.emit('RUNNER_HEARTBEAT',reason_code='NO_ELIGIBLE_MANDATES',password='SECRET')
+    record=json.loads(caplog.records[-1].message)
+    assert datetime.fromisoformat(record['timestamp']).utcoffset()==timedelta(0)
+    assert set(record)=={'event','timestamp','reason_code'}
+    assert 'SECRET' not in json.dumps(record)
+
+
+@pytest.mark.parametrize('state,persisted,expected',[
+    ('RECONCILIATION_REQUIRED',True,'RECONCILIATION_REQUIRED'),
+    ('SKIPPED',True,'EVALUATION_SKIPPED'),('COMPLETED',False,'EVALUATION_PENDING')])
+def test_poll_never_labels_unconfirmed_or_skipped_work_as_completed(h,state,persisted,expected):
+    h.runner.processor=lambda factory,mid,**kwargs:CycleResult(mid,state,'TEST_RESULT','TEST_REASON',
+        uuid4(),persisted)
+    h.runner.poll_once()
+    assert ('POLL_STATUS',{'reason_code':expected}) in h.events
