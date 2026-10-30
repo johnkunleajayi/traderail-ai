@@ -152,13 +152,70 @@ def test_discovery_failure_logs_and_returns(h,monkeypatch):
 
 def test_engine_timeouts_are_explicit(monkeypatch):
     factory=Mock(return_value=object());monkeypatch.setattr(runtime,'create_engine',factory)
-    runtime.make_engine(settings())
+    hooks=[]
+    def listen(engine,name):
+        assert engine is factory.return_value and name=='begin'
+        def register(fn):hooks.append(fn);return fn
+        return register
+    monkeypatch.setattr(runtime.event,'listens_for',listen)
+    configured=Mock();monkeypatch.setattr(runtime,'_configure_timeouts',configured)
+    config=settings();assert runtime.make_engine(config) is factory.return_value
     kw=factory.call_args.kwargs
     assert kw['isolation_level']=='READ COMMITTED' and kw['hide_parameters'] is True
-    assert kw['connect_args']['connect_timeout']==5
-    assert 'statement_timeout=15000' in kw['connect_args']['options']
-    assert 'lock_timeout=3000' in kw['connect_args']['options']
-    assert 'idle_in_transaction_session_timeout=30000' in kw['connect_args']['options']
+    assert kw['connect_args']=={'connect_timeout':5}
+    assert kw['poolclass'] is runtime.NullPool
+    first,second=object(),object()
+    # Each transaction may be assigned a different backend by the pooler.
+    hooks[0](SimpleNamespace(connection=SimpleNamespace(dbapi_connection=first)))
+    hooks[0](SimpleNamespace(connection=SimpleNamespace(dbapi_connection=second)))
+    assert configured.call_args_list==[ ((first,config),), ((second,config),) ]
+
+
+@pytest.mark.parametrize('limits',[(15000,3000,30000),(30000,10000,60000)])
+def test_timeout_setup_verified_in_transaction_before_use(limits):
+    events=[]
+    class Connection:
+        autocommit=False
+        def cursor(self):return Cursor(self)
+        def close(self):events.append('CLOSE')
+    class Cursor:
+        def __init__(self,connection):self.connection=connection
+        def __enter__(self):return self
+        def __exit__(self,*args):events.append('CURSOR_CLOSED')
+        def execute(self,sql,params):
+            assert self.connection.autocommit is False
+            events.append((sql,params))
+        def fetchone(self):return (True,True,True)
+    connection=Connection()
+    runtime._configure_timeouts(connection,settings(
+        paper_runner_statement_timeout_ms=limits[0],paper_runner_lock_timeout_ms=limits[1],
+        paper_runner_idle_transaction_timeout_ms=limits[2]))
+    assert connection.autocommit is False
+    assert events[0][1]==tuple(str(value)+'ms' for value in limits)
+    assert events[0][0].count('%s, true)')==3
+    assert 'false)' not in events[0][0]
+    assert events[1][1]==limits and 'current_setting' in events[1][0]
+    assert events[-1]=='CURSOR_CLOSED' and 'CLOSE' not in events
+
+
+@pytest.mark.parametrize('failure',['SET','VERIFY','MISMATCH','AUTOCOMMIT'])
+def test_timeout_initialization_failure_discards_connection(failure):
+    closed=[]
+    class Connection:
+        autocommit=failure=='AUTOCOMMIT'
+        def cursor(self):return Cursor()
+        def close(self):closed.append(True)
+    class Cursor:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def execute(self,sql,params):
+            if (failure=='SET' and 'set_config' in sql) or (failure=='VERIFY' and 'current_setting' in sql):
+                raise RuntimeError('secret host password')
+        def fetchone(self):return (True,False,True) if failure=='MISMATCH' else (True,True,True)
+    with pytest.raises(RuntimeError,match='^Runner database timeout initialization failed$'):
+        runtime._configure_timeouts(Connection(),settings())
+    assert closed==[True]
+
 
 def test_provider_uses_existing_adapter_and_bounded_http(monkeypatch):
     client=Mock();client.__enter__=Mock(return_value=client);client.__exit__=Mock(return_value=False)
@@ -275,3 +332,32 @@ def test_schema_failure_never_starts_loop_and_disposes(monkeypatch,capsys):
     assert runtime.main([])==2
     loop.assert_not_called();engine.dispose.assert_called_once()
     assert 'private' not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize('initialization_failure',[False,True])
+def test_real_sqlalchemy_begin_orders_configuration_before_transaction_body(monkeypatch,initialization_failure):
+    # Exercise real SQLAlchemy transaction events with an explicitly injected
+    # DBAPI double. No driver connection (including SQLite) is opened.
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine import Connection
+    engine=create_engine(URL,poolclass=runtime.NullPool)
+    events=[]
+    monkeypatch.setattr(runtime,'create_engine',lambda *args,**kwargs:engine)
+    def initialize(connection,config):
+        events.append('CONFIGURE')
+        if initialization_failure:raise RuntimeError('configuration failed')
+    monkeypatch.setattr(runtime,'_configure_timeouts',initialize)
+    runtime.make_engine(settings())
+    injected=SimpleNamespace(dbapi_connection=object(),is_valid=True,
+        commit=Mock(),rollback=Mock(),close=Mock())
+    try:
+        with Connection(engine,connection=injected) as c:
+            if initialization_failure:
+                with pytest.raises(RuntimeError,match='configuration failed'):
+                    with c.begin():events.append('APPLICATION_BODY')
+                assert events==['CONFIGURE']
+            else:
+                for _ in range(2):
+                    with c.begin():events.append('APPLICATION_BODY')
+                assert events==['CONFIGURE','APPLICATION_BODY','CONFIGURE','APPLICATION_BODY']
+    finally:engine.dispose()

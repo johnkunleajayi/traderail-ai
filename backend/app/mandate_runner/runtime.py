@@ -11,7 +11,7 @@ import sys
 from threading import Event
 from uuid import UUID
 import httpx
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from app.market_data.binance import BinanceHistoricalProvider
@@ -34,14 +34,45 @@ def emit(event,**fields):
     logging.getLogger('traderail.paper_runner').info(json.dumps(record,sort_keys=True))
 
 
+def _configure_timeouts(connection,settings):
+    """Set and verify local protections before any transaction body can run.
+
+    Transaction-local settings stay bound to the actual backend even when the
+    configured endpoint uses transaction pooling. Never change autocommit here.
+    """
+    try:
+        if connection.autocommit is not False:
+            raise RuntimeError('Transactional connection required')
+        limits=(settings.paper_runner_statement_timeout_ms,
+                settings.paper_runner_lock_timeout_ms,
+                settings.paper_runner_idle_transaction_timeout_ms)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('statement_timeout', %s, true), "
+                "set_config('lock_timeout', %s, true), "
+                "set_config('idle_in_transaction_session_timeout', %s, true)",
+                tuple(str(value)+'ms' for value in limits))
+            cursor.execute("SELECT current_setting('statement_timeout')::interval = %s * interval '1 millisecond', "
+                "current_setting('lock_timeout')::interval = %s * interval '1 millisecond', "
+                "current_setting('idle_in_transaction_session_timeout')::interval = %s * interval '1 millisecond'",
+                limits)
+            if cursor.fetchone()!=(True,True,True):
+                raise RuntimeError('Timeout verification failed')
+    except Exception:
+        # A partially initialized connection must never reach schema/trading work.
+        try:connection.close()
+        except Exception:pass
+        raise RuntimeError('Runner database timeout initialization failed') from None
+
+
 def make_engine(settings):
     # Separate from the HTTP engine; no FastAPI imports or global startup hooks.
-    return create_engine(str(settings.database_url),poolclass=NullPool,echo=False,hide_parameters=True,
+    engine=create_engine(str(settings.database_url),poolclass=NullPool,echo=False,hide_parameters=True,
         isolation_level='READ COMMITTED',connect_args={
-            'connect_timeout':settings.paper_runner_connect_timeout_seconds,
-            'options':f'-c statement_timeout={settings.paper_runner_statement_timeout_ms} '
-                      f'-c lock_timeout={settings.paper_runner_lock_timeout_ms} '
-                      f'-c idle_in_transaction_session_timeout={settings.paper_runner_idle_transaction_timeout_ms}'})
+            'connect_timeout':settings.paper_runner_connect_timeout_seconds})
+    @event.listens_for(engine,'begin')
+    def initialize(connection):
+        _configure_timeouts(connection.connection.dbapi_connection,settings)
+    return engine
 
 
 def verify_schema(engine):
