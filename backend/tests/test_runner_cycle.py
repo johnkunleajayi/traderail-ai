@@ -282,3 +282,52 @@ def test_missing_candle_conflict_requires_reconciliation(h):
     h.candle=None;h.market=replace(h.market,status='INTEGRITY_CONFLICT',safe_for_evaluation=False)
     assert h.process().state=='RECONCILIATION_REQUIRED'
     h.run.assert_not_called()
+
+
+
+@pytest.mark.parametrize('code',sorted(r.EVALUATION_ERROR_CODES))
+def test_handled_skip_keeps_allowlisted_reason_after_savepoint_rollback(h,code,caplog):
+    import json
+    from app.mandate_runner import runtime
+    from app.mandate_strategy.contracts import MandateEvaluationError
+    h.error=MandateEvaluationError(code,'SECRET credential/token/provider payload')
+    result=h.process()
+    assert (result.state,result.outcome_code,result.reason_code)==('SKIPPED','EVALUATION_UNAVAILABLE',code.upper())
+    assert result.persisted and h.rollbacks==1
+    assert h.data['effects']==h.data['authority']==0
+    assert h.data['work']['reason_code']==code.upper() and h.data['work']['attempts']==1
+    with caplog.at_level('INFO',logger='traderail.paper_runner'):
+        runtime.emit('CYCLE_RESULT',state=result.state,outcome_code=result.outcome_code,
+            reason_code=result.reason_code,persisted=result.persisted)
+    logged=json.loads(caplog.records[-1].message)
+    assert logged['reason_code']==code.upper() and logged['outcome_code']=='EVALUATION_UNAVAILABLE'
+    assert 'SECRET' not in repr(h.data) and 'SECRET' not in caplog.text
+    recovered=h.process()
+    assert recovered.reused and recovered.reason_code==code.upper() and h.run_calls==1
+
+
+@pytest.mark.parametrize('code',['postgresql://SECRET:token@host/db','SECRET_TOKEN',None,'market_evidence_unavailable SECRET'])
+def test_unknown_error_code_cannot_leak_into_persistence_or_logs(h,code,caplog):
+    from app.mandate_runner import runtime
+    h.error=PaperRunError(code,'SECRET exception message',409)
+    result=h.process()
+    assert result.state=='SKIPPED' and result.outcome_code=='EVALUATION_UNAVAILABLE'
+    assert result.reason_code==h.data['work']['reason_code']=='DOMAIN_ERROR_UNCLASSIFIED'
+    assert h.data['effects']==h.data['authority']==0 and h.rollbacks==1
+    with caplog.at_level('INFO',logger='traderail.paper_runner'):
+        runtime.emit('CYCLE_RESULT',reason_code=result.reason_code)
+    assert 'SECRET' not in repr(h.data) and 'SECRET' not in caplog.text
+
+
+@pytest.mark.parametrize('status,late,expected',[
+    (503,False,('RETRY_WAIT','EVIDENCE_OR_SERVICE_UNAVAILABLE','EVIDENCE_OR_SERVICE_UNAVAILABLE')),
+    (503,True,('SKIPPED','EVALUATION_UNAVAILABLE','MARKET_EVIDENCE_UNAVAILABLE')),
+    (409,False,('SKIPPED','EVALUATION_UNAVAILABLE','MARKET_EVIDENCE_UNAVAILABLE')),
+])
+def test_failure_diagnostic_preserves_retry_classification(h,status,late,expected):
+    if late:h.now=AT.replace(minute=9,second=45)
+    h.error=PaperRunError('market_evidence_unavailable','SECRET',status)
+    result=h.process()
+    assert (result.state,result.outcome_code,result.reason_code)==expected
+    assert h.data['effects']==h.data['authority']==0
+    assert (h.data['work']['retry_at'] is not None)==(expected[0]=='RETRY_WAIT')

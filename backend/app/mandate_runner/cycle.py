@@ -21,6 +21,21 @@ from .repository import ensure_work, load_work, record_attempt, record_result, u
 RUNNER_VERSION="paper-runner-v1"
 RETRY_DELAY=timedelta(seconds=30)
 
+# Only server-owned literals may become persisted/logged failure diagnostics.
+# A regex alone would also admit tokens or sensitive text shaped like a code.
+EVALUATION_ERROR_CODES=frozenset((
+    'mandate_ineligible','mandate_not_found','mandate_market_unavailable',
+    'technical_configuration_unavailable','position_context_unavailable',
+    'analytical_context_mismatch','unsafe_market_evidence','market_evidence_unavailable',
+    'mandate_book_changed','mandate_risk_context_mismatch','trusted_mandate_risk_unavailable',
+    'mandate_position_evidence_unavailable','mandate_registry_unavailable',
+))
+
+
+def evaluation_failure_reason(code):
+    return code.upper() if isinstance(code,str) and code in EVALUATION_ERROR_CODES else 'DOMAIN_ERROR_UNCLASSIFIED'
+
+
 @dataclass(frozen=True)
 class CycleResult:
     mandate_id: UUID
@@ -165,7 +180,9 @@ def process_one(session_factory,mandate_id,*,clock=utc_now,provider_factory=None
                         except (MandateRiskError,MandateError,MandateEvaluationError) as error:
                             failed_at=utc(clock())
                             state,reason,retry=failure_state(error.code,getattr(error,'status',409),failed_at,row['fresh_until'])
-                            response=finish(state,reason,reason,retry_at=retry)
+                            diagnostic=(evaluation_failure_reason(error.code)
+                                if state=='SKIPPED' and reason=='EVALUATION_UNAVAILABLE' else reason)
+                            response=finish(state,reason,diagnostic,retry_at=retry)
                         except SQLAlchemyError:
                             # Failed savepoint is rolled back; no economic effect commits.
                             failed_at=utc(clock())
