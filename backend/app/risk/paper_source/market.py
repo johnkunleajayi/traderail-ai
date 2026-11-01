@@ -66,3 +66,34 @@ def read_candles(c,*,at):
 def read_observation(c,*,at,position_state=PositionState.CASH):
     context,candles=read_candles(c,at=at)
     return analyze(context,candles,at=at,position_state=position_state)
+
+
+POSITION_HISTORY_PAGE_SIZE=256
+
+
+def read_position_history(c,context,*,entered_at,latest,at):
+    """Stream locked, contiguous completed marks in bounded database pages.
+
+    The range is derived from the persisted entry and already validated latest
+    analytical candle, never from a holding-period limit or a provider fetch.
+    """
+    from app.market_intelligence.validation import validate_dataset
+    duration=timedelta(seconds=TIMEFRAME_SECONDS[TIMEFRAME])
+    entered_at=timestamp(entered_at);at=timestamp(at)
+    cursor=min(entered_at.replace(minute=0,second=0,microsecond=0),latest.open_time)
+    while cursor<=latest.open_time:
+        stored=c.execute(select(MarketCandle.__table__).where(
+            MarketCandle.instrument_id==context.instrument_id,
+            MarketCandle.provider==context.provider,MarketCandle.timeframe==context.timeframe,
+            MarketCandle.open_time>=cursor,MarketCandle.open_time<=latest.open_time,
+            MarketCandle.close_time<at).order_by(MarketCandle.open_time.asc())
+            .limit(POSITION_HISTORY_PAGE_SIZE).with_for_update(read=True)).mappings().all()
+        page=tuple(Candle(**{name:r[name] for name in Candle.__dataclass_fields__}) for r in stored)
+        validate_dataset(context,page,at)
+        if not page or page[0].open_time!=cursor or any(row.retrieved_at>at for row in page):
+            raise PaperEvidenceUnavailable('Complete position valuation history unavailable')
+        for row in page:
+            if row.open_time==latest.open_time and row!=latest:
+                raise PaperEvidenceUnavailable('Position history analytical boundary mismatch')
+            yield row
+        cursor=page[-1].open_time+duration

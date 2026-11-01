@@ -252,3 +252,93 @@ def test_close_http_boundary_requires_operator_origin_and_identity_only():
         assert response.status_code==200 and response.json()=={'status':'NO_TRADE'}
         assert response.headers['cache-control']=='no-store'
         assert source.evaluate_close.call_count==1
+
+
+
+def long_held_exit():
+    """Extend a genuine fixture's holding interval, not its analytical tail."""
+    db,_,_,request,at=ready();opened=execute(db,request,at)
+    ds=frozen_dataset('long_profit');add_candles(db,ds.candles)
+    start=opened.executed_at.replace(minute=0,second=0,microsecond=0)
+    shift=timedelta(hours=300)
+    for row in db.rows['market_candles']:
+        if row['open_time']>=start:
+            for field in ('open_time','close_time','retrieved_at','created_at','updated_at'):
+                row[field]+=shift
+    template=ds.candles[0]
+    add_candles(db,[replace(template,open_time=start+timedelta(hours=n),
+        close_time=start+timedelta(hours=n+1)-timedelta(milliseconds=1),
+        retrieved_at=start+timedelta(hours=n+1),
+        open=D('178'),high=D('178'),low=D('178'),close=D('178')) for n in range(300)])
+    return db,opened,ds.candles[-1].close_time+shift+timedelta(minutes=1)
+
+
+def test_long_held_exit_uses_paged_history_fresh_authorization_and_single_close():
+    db,opened,at=long_held_exit()
+    _,tail=risk_market.read_candles(db,at=at)
+    assert len(tail)==100 and tail[0].open_time>opened.executed_at
+    inputs,decision=assemble_close(db,USER,opened.position_id,at)
+    assert decision.decision.value=='EXIT_LONG'
+    response=registered_response(db,inputs,decision,USER)
+    assert response['status']=='APPROVED'
+    package=load_authorization(db,response['registry_identity'],user_id=USER)
+    assert package.authorization.intent.intent_identity!=opened.intent_identity
+    assert len(package.authorization.report.gates)==4
+    request=ExecutionRequest(package.authorization,'PAPER_INTERNAL',at)
+    closed=execute(db,request,at+timedelta(seconds=1))
+    assert closed.quantity==opened.quantity and closed.action=='EXIT_LONG'
+    assert closed.net_realized_pnl==D('14.258015')
+    assert execute(db,request,at+timedelta(days=1))==closed
+    assert len(db.rows['execution_fills'])==len(db.rows['paper_accounting_entries'])==2
+    pages=[q for q in db.statements if getattr(q,'_limit_clause',None) is not None
+        and q._limit_clause.value==risk_market.POSITION_HISTORY_PAGE_SIZE]
+    assert len(pages)>=2
+    assert all(q._for_update_arg.read for q in pages)
+
+
+@pytest.mark.parametrize('problem',['missing_first','missing_middle','future','invalid','stale','expired'])
+def test_long_held_exit_missing_or_unsafe_evidence_cannot_execute(problem):
+    from copy import deepcopy
+    from app.risk.paper_source.market import PaperEvidenceUnavailable
+    from app.market_intelligence.types import InvalidCandleData
+    db,opened,at=long_held_exit()
+    start=opened.executed_at.replace(minute=0,second=0,microsecond=0)
+    if problem in ('missing_first','missing_middle'):
+        target=start+timedelta(hours=0 if problem=='missing_first' else 256)
+        db.rows['market_candles']=[r for r in db.rows['market_candles'] if r['open_time']!=target]
+    elif problem in ('future','invalid'):
+        row=next(r for r in db.rows['market_candles'] if r['open_time']==start)
+        row['retrieved_at']=at+timedelta(seconds=1) if problem=='future' else row['retrieved_at']
+        if problem=='invalid':row['close']=D('-1')
+    before=deepcopy(db.rows)
+    if problem=='expired':
+        inputs,decision=assemble_close(db,USER,opened.position_id,at)
+        response=registered_response(db,inputs,decision,USER)
+        package=load_authorization(db,response['registry_identity'],user_id=USER)
+        request=ExecutionRequest(package.authorization,'PAPER_INTERNAL',at)
+        with pytest.raises(PaperAPIError):execute(db,request,at+timedelta(minutes=6))
+        assert len(db.rows['execution_fills'])==1
+    else:
+        with pytest.raises((PaperEvidenceUnavailable,InvalidCandleData)):
+            assemble_close(db,USER,opened.position_id,at+timedelta(hours=1) if problem=='stale' else at)
+        assert db.rows==before
+
+
+
+def test_long_held_history_preserves_old_peak_identity_and_system_veto():
+    from app.strategy_lab.numeric import exact_sum
+    db,opened,at=long_held_exit()
+    baseline,_=assemble_close(db,USER,opened.position_id,at)
+    mark=next(r for r in db.rows['market_candles']
+        if r['open_time']==opened.executed_at.replace(minute=0,second=0,microsecond=0))
+    mark.update(open=D('250'),high=D('250'),low=D('250'),close=D('250'))
+    inputs,decision=assemble_close(db,USER,opened.position_id,at)
+    assert inputs.drawdown_evidence.historical_peak==exact_sum((opened.cash_after,D('250')))
+    assert inputs.drawdown_evidence.evidence_identity!=baseline.drawdown_evidence.evidence_identity
+    assert inputs.market_context==baseline.market_context  # Same analytical tail.
+    for row in db.rows['paper_kill_switch_states']:
+        if row['scope']=='SYSTEM':row['active']=True
+    inputs,decision=assemble_close(db,USER,opened.position_id,at)
+    response=registered_response(db,inputs,decision,USER)
+    assert response['status']=='REJECTED'
+    assert len(db.rows['paper_authorizations'])==len(db.rows['execution_fills'])==1

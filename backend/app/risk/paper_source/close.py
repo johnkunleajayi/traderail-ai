@@ -30,7 +30,7 @@ from app.risk.integrated.inputs import RiskEvaluationInputs
 from app.strategies.inputs import PositionState
 from app.strategies.decisions import DecisionType
 from app.strategy_lab.numeric import exact_product,exact_sum,difference
-from .market import read_candles,analyze,PaperEvidenceUnavailable,digest
+from .market import read_candles,read_position_history,analyze,PaperEvidenceUnavailable,digest
 from .models import initializations
 from .policies import COSTS,COST_VERSION,CONSTRAINTS,PORTFOLIO_POLICY,STATE_POLICY,SAFETY_POLICY,SYMBOL
 
@@ -41,7 +41,9 @@ def history_state(initial,position,entry,book,candles):
     Peak is a peak of explicitly observed completed-candle portfolio valuations,
     including the authoritative entry reference mark; no intrabar peak is claimed.
     """
-    if (initial['previous_state']!='NORMAL' or initial['peak_equity']!=Decimal('10000')
+    candles=iter(candles)
+    first=next(candles,None)
+    if (first is None or initial['previous_state']!='NORMAL' or initial['peak_equity']!=Decimal('10000')
             or initial['book_identity']!=entry.before_state_identity
             or initial['initialized_at']>entry.executed_at
             or entry.action!='ENTER_LONG' or entry.position_id!=position['position_id']
@@ -55,7 +57,7 @@ def history_state(initial,position,entry,book,candles):
             or entry.executed_at!=position['opened_at'] or book.updated_at!=entry.executed_at
             or entry.cash_after!=book.cash_balance or entry.cash_before!=initial['peak_equity']
             or book.accounting_identities!=(entry.result_identity,)
-            or candles[0].open_time>entry.executed_at):
+            or first.open_time>entry.executed_at):
         raise PaperEvidenceUnavailable('Complete first-position valuation provenance required')
     peak=initial['peak_equity'];peak_at=initial['initialized_at'];state=RiskState.NORMAL
     entry_mark=position['entry_reference_notional']
@@ -63,13 +65,17 @@ def history_state(initial,position,entry,book,candles):
     measured=DrawdownMeasurement(peak,opening_equity)
     state,_=transition_state(measured,state,STATE_POLICY)
     if opening_equity>peak:peak,peak_at=opening_equity,entry.executed_at
-    for candle in candles[:-1]:
-        if candle.close_time<entry.executed_at:continue
-        equity=exact_sum((book.cash_balance,exact_product(position['quantity'],candle.close)))
+    history_identity=digest('paper-position-history/v1',first)
+    candle=first
+    for following in candles:
+        history_identity=digest('paper-position-history/v1',{'previous':history_identity,'candle':following})
+        mark=candle;candle=following
+        if mark.close_time<entry.executed_at:continue
+        equity=exact_sum((book.cash_balance,exact_product(position['quantity'],mark.close)))
         measured=DrawdownMeasurement(peak,equity)
         state,_=transition_state(measured,state,STATE_POLICY)
-        if equity>peak:peak,peak_at=equity,candle.close_time
-    return peak,peak_at,state
+        if equity>peak:peak,peak_at=equity,mark.close_time
+    return peak,peak_at,state,history_identity
 
 
 def assemble_close(c,user_id,position_id,at,*,expected_candle=None):
@@ -112,7 +118,8 @@ def assemble_close(c,user_id,position_id,at,*,expected_candle=None):
                 observation.definition.family,observation.definition.version,observation.definition.configuration_identity)):
         raise PaperEvidenceUnavailable('Closing strategy/instrument attribution mismatch')
     if decision.decision is not DecisionType.EXIT_LONG:return None,decision
-    peak,peak_at,previous=history_state(initial,pos,entry,book,candles)
+    history=read_position_history(c,context,entered_at=entry.executed_at,latest=candles[-1],at=at)
+    peak,peak_at,previous,history_identity=history_state(initial,pos,entry,book,history)
     scope=PortfolioScope(user_id,pid,Environment.PAPER,'USDT');config=configuration_for_paper_portfolio(scope)
     until=min(market.expires_at,at+config.operating_limits.max_approval_age)
     reference=observation.candle.close
@@ -138,7 +145,7 @@ def assemble_close(c,user_id,position_id,at,*,expected_candle=None):
     portfolio_context=PortfolioRiskContext(intent.intent_identity,snapshot.snapshot_identity,PORTFOLIO_POLICY.policy_identity,
         'USDT',book.state_identity,at,until,book.state_identity,(attribution,),(),())
     drawdown=DrawdownEvidence(scope,snapshot.snapshot_identity,book.state_identity,equity,peak,previous,peak_at,at,until,
-        digest('paper-first-close-history/v1',{'entry':entry.result_identity,'market':market.data_identity,'initial':dict(initial)}))
+        digest('paper-first-close-history/v1',{'entry':entry.result_identity,'market':market.data_identity,'initial':dict(initial),'position_history':history_identity}))
     assumptions=SizingAssumptions(reference,market,config.operating_limits.max_trade_risk_fraction,COSTS,CONSTRAINTS,pos['quantity'])
     return RiskEvaluationInputs(intent,config,snapshot,market,at,assumptions,PORTFOLIO_POLICY,portfolio_context,
         STATE_POLICY,drawdown,SAFETY_POLICY,inventory,lifecycle,health),decision
