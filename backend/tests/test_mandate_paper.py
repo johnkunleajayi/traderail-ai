@@ -345,3 +345,28 @@ print(json.dumps(outputs,sort_keys=True))
         assert p.returncode==0,p.stderr
         results.append(p.stdout)
     assert len(set(results))==1
+
+
+
+@pytest.mark.parametrize('regime_name,action,expected_status',[
+    ('UNKNOWN',None,200),('UNSAFE',None,409),('UNKNOWN','ENTER_LONG',409),
+])
+def test_regime_boundary_never_reaches_risk_authorization_or_execution(api,monkeypatch,regime_name,action,expected_status):
+    from app.market_regimes.types import Regime
+    from app.strategies.decisions import DecisionType
+    from app.mandate_risk import service as risk
+    from test_mandate_strategy import inject_regime
+    a=api('long_profit')
+    inject_regime(monkeypatch,Regime(regime_name),DecisionType(action) if action else None)
+    blocked=Mock(side_effect=AssertionError('Non-actionable/invalid regime cannot reach Risk or execution'))
+    monkeypatch.setattr(risk,'assemble',blocked)
+    monkeypatch.setattr(risk,'inspect_risk',blocked)
+    monkeypatch.setattr(risk,'evaluate_and_register',blocked)
+    monkeypatch.setattr(runner,'run_paper_execution',blocked)
+    response=post(a);assert response.status_code==expected_status,response.text
+    if expected_status==200:
+        result=response.json()
+        assert result['status']=='NO_TRADE' and result['strategy_decision']=='NO_ACTION'
+        assert result['intent_identity'] is None and result['execution'] is None
+    assert all(n==0 for n in economic_counts(a.db).values())
+    assert not a.db.rows['paper_authorizations'];blocked.assert_not_called()

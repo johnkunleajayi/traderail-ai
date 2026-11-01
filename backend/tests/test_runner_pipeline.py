@@ -148,3 +148,24 @@ def test_real_exit_active_system_switch_blocks_without_close(pipeline):
     assert result.state=='COMPLETED' and result.outcome_code=='EXIT_RISK_REJECTED',result
     assert all(n==1 for n in economic_counts(a.db).values())
     assert a.db.rows['paper_positions'][0]['status']=='OPEN'
+
+
+
+def test_unknown_inactivity_is_completed_no_trade_and_not_retried(pipeline,monkeypatch):
+    from app.market_regimes.types import Regime
+    from app.mandate_risk import service as risk
+    from test_mandate_strategy import inject_regime
+    a=pipeline()
+    inject_regime(monkeypatch,Regime.UNKNOWN)
+    forbidden=Mock(side_effect=AssertionError('UNKNOWN inactivity cannot authorize or execute'))
+    monkeypatch.setattr(risk,'assemble',forbidden)
+    monkeypatch.setattr(risk,'evaluate_and_register',forbidden)
+    monkeypatch.setattr(paper,'run_paper_execution',forbidden)
+    result=a.run()
+    assert result.state=='COMPLETED' and result.outcome_code=='NO_TRADE' and result.persisted
+    assert result.reason_code=='EVALUATION_COMPLETED'
+    assert all(n==0 for n in economic_counts(a.db).values())
+    assert not a.db.rows['paper_authorizations']
+    before=deepcopy(a.db.rows)
+    assert a.run().reused and a.db.rows==before
+    forbidden.assert_not_called()

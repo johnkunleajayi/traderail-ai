@@ -47,7 +47,10 @@ def build_result(eligibility, book, observation, decision, market, *, at):
         or market.data_through != observation.candle.close_time or market.observed_at != observation.as_of
         or observation.as_of != at or market.regime != observation.regime.regime):
         raise MandateEvaluationError("analytical_context_mismatch", "Analytical evidence does not match the eligible mandate context")
-    if observation.regime.regime in (Regime.UNSAFE, Regime.UNKNOWN):
+    # UNKNOWN can be valid non-trending evidence, not a data-integrity failure.
+    # Only its genuine non-actionable decision may continue to NO_TRADE.
+    if (observation.regime.regime is Regime.UNSAFE
+        or (observation.regime.regime is Regime.UNKNOWN and decision.decision is not DecisionType.NO_ACTION)):
         raise MandateEvaluationError("unsafe_market_evidence", "Canonical regime evidence is unsafe or incomplete")
     outcome, reasons = filter_capability(decision.decision)
     evidence = MarketEvidence(instrument_id=observation.context.instrument_id, canonical_symbol=observation.context.canonical_symbol,

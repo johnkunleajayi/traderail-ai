@@ -306,3 +306,44 @@ finally:
         assert completed.returncode==0,completed.stderr
         results.append(completed.stdout)
     assert len(set(results))==1
+
+
+
+def inject_regime(monkeypatch,regime,action=None):
+    """Controlled regime/decision boundary fixtures; no stored candles altered."""
+    original=canonical_market.classify_regimes
+    def classify(*args,**kwargs):
+        rows=original(*args,**kwargs);last=rows[-1]
+        rows[-1]=replace(last,regime=regime,evidence=replace(last.evidence,candidate=regime,
+            reason_codes=('INSUFFICIENT_EVIDENCE',) if regime.value=='UNKNOWN' else ('DATA_UNSAFE',)))
+        return rows
+    monkeypatch.setattr(canonical_market,'classify_regimes',classify)
+    if action is not None:
+        from app.strategies.decisions import StrategyDecision
+        monkeypatch.setattr(canonical_market,'evaluate_strategy',lambda strategy,observation:
+            StrategyDecision(observation,action,('TEST_ONLY',),{}))
+
+
+def test_valid_unknown_no_action_is_existing_no_trade(make_api,monkeypatch):
+    from app.market_regimes.types import Regime
+    inject_regime(monkeypatch,Regime.UNKNOWN)
+    a=make_api('long_profit');response=post(a)
+    assert response.status_code==200,response.text
+    result=response.json()
+    assert result['regime']['regime']=='UNKNOWN'
+    assert result['strategy_decision']['decision']=='NO_ACTION'
+    assert result['outcome']=='NO_TRADE' and result['reason_codes']==['STRATEGY_NO_ACTION']
+    assert result['strategy_decision']['reason_codes']==['REGIME_NOT_TRENDING']
+
+
+@pytest.mark.parametrize('regime_name,action',[
+    ('UNSAFE',None),('UNSAFE',DecisionType.ENTER_LONG),
+    *[('UNKNOWN',d) for d in DecisionType if d is not DecisionType.NO_ACTION],
+])
+def test_unsafe_or_actionable_unknown_remains_rejected(make_api,monkeypatch,regime_name,action):
+    from app.market_regimes.types import Regime
+    inject_regime(monkeypatch,Regime(regime_name),action)
+    a=make_api('long_profit');response=post(a)
+    assert response.status_code==409,response.text
+    assert response.json()['detail']['code']=='unsafe_market_evidence'
+    for name in ('add','delete','flush','commit'):getattr(a.db,name).assert_not_called()
