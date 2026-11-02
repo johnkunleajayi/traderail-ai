@@ -67,14 +67,22 @@ def _benchmark(plan, definition, *, as_of):
     OutOfSamplePlan(plan.dataset, plan.warmup, plan.split, plan.strategy_definition,
         plan.execution_configuration, plan.quantity, plan.initial_capital,
         plan.accounting_configuration, plan.initial_state)
-    data = plan.dataset
-    create_dataset(data.context, data.candles, warmup_start=data.warmup_start,
-        evaluation_start=data.evaluation_start, evaluation_end=data.evaluation_end, as_of=as_of)
-    window = plan.split.out_of_sample
+    return benchmark_window(plan.dataset,plan.split.out_of_sample,plan.initial_capital,
+        plan.execution_configuration,definition,as_of=as_of)
+
+
+def benchmark_window(data,window,capital,config,definition,*,as_of):
+    """Pure passive evaluation for an explicit local window; no strategy fitting."""
+    from app.strategy_lab.numeric import require_decimal
+    if require_decimal(capital,'initial capital')<=0 or not isinstance(config,HistoricalExecutionConfiguration):
+        raise ValueError('Positive capital and typed execution configuration required')
+    if not isinstance(window,TimeWindow):raise ValueError('Explicit benchmark window required')
+    create_dataset(data.context,data.candles,warmup_start=data.warmup_start,
+        evaluation_start=data.evaluation_start,evaluation_end=data.evaluation_end,as_of=as_of)
     rows = tuple(row for row in data.candles if window.start <= row.open_time < window.end)
-    if not rows:
-        raise ValueError("No completed benchmark observations in the declared OOS window")
-    capital, config = plan.initial_capital, plan.execution_configuration
+    if (not rows or rows[0].open_time!=window.start
+        or rows[-1].close_time+timedelta(milliseconds=1)!=window.end):
+        raise ValueError("Complete benchmark window required")
     quantity, cash, costs = ZERO, capital, CostBreakdown()
     entry_time = reference = fill_price = None
     entry_index = None
